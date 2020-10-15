@@ -15,10 +15,10 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import brewer2mpl
-from acc_bounds_util import isStateViable
-from acc_bounds_util import computeAccLimits
-from acc_bounds_util import computeAccLimitsFromViability
-from acc_bounds_util import computeAccLimitsFromPosLimits
+from acc_bounds_util_2e import isStateViable_2
+from acc_bounds_util_2e import computeAccLimits_2
+from acc_bounds_util_2e import computeAccLimitsFromViability_2
+from acc_bounds_util_2e import computeAccLimitsFromPosLimits_2
 from inequalities_probability import InequalitiesProbability
 import sys
 import math
@@ -87,23 +87,25 @@ EPS = 1e-10;
 TEST_MAX_ACC = True;    # if true select always the maximum acceleration possible 
 TEST_MIN_ACC = False;    # if true select always the minimum acceleration possible 
 TEST_MED_ACC = False;    # if true select always the average of max and min acc
-TEST_MED_POS_ACC = True;    # if true select always the average of max and min acc imposed by pos bounds (saturated if necessary)
+TEST_MED_POS_ACC = False;    # if true select always the average of max and min acc imposed by pos bounds (saturated if necessary)
 PLOT_STATE_SPACE = True;
 PLOT_STATE_SPACE_DECRE = True;
 PLOT_STATE_SPACE_PADOIS = True;
-PLOT_STATE_SPACE_PROBABILITY = True;
+PLOT_STATE_SPACE_PROBABILITY = False;
 PLOT_SIMULATION_RESULTS = True;
+TRAJECTORY = True;
 qMax    = 2.0;
 qMin    = -2.0;
 MAX_VEL = 5.0;
 MAX_ACC = 10.0;
-q0      =  0.0;
+q0      =  0.0
 dq0     =  0.0;
 N_TESTS = 20;
 DT = 0.10;
 VIABILITY_MARGIN = 1e10; # minimum margin to leave between ddq and its bounds found through viability
 error_trigger = 0.0
-
+fraction = 0.2
+E = 0.45* MAX_ACC;
 ''' State in which acc bounds from pos are stricter than acc bounds from viability '''
 #q0 = -0.086850;
 #dq0 = -0.093971;
@@ -120,7 +122,7 @@ DQ_INTERVAL = 0.2; # for plotting the range of possible velocities is sampled wi
 #   qMin + 0.5*t**2*MAX_ACC = 0.5*(qMin+qMax)
 # we can find t=sqrt((qMax-qMin)/MAX_ACC) and then use it to compute the max velocity:
 #   dq(t) = t*MAX_ACC = sqrt(MAX_ACC*(qMax-qMin));
-max_vel_from_pos_acc_bounds = np.sqrt(MAX_ACC*(qMax-qMin));
+max_vel_from_pos_acc_bounds = np.sqrt((MAX_ACC-E)*(qMax-qMin));
 print("INFO Max velocity is %f, max velocity forced by position and acceleration bounds is %f" % (MAX_VEL, max_vel_from_pos_acc_bounds));
 
 
@@ -167,14 +169,14 @@ for i in range(N_TESTS):
             if(q_zero_vel<qMin-EPS):
                 print("ERROR Time %d, lower position limits violated q=%f, qMin=%f" % (i,q_zero_vel,qMin));
         
-    (ddqMinFinal, ddqMaxFinal) = computeAccLimits(q[i], dq[i], qMin, qMax, MAX_VEL, MAX_ACC, DT_SAFE);
+    (ddqMinFinal, ddqMaxFinal) = computeAccLimits_2(q[i], dq[i], qMin, qMax, MAX_VEL, MAX_ACC, DT_SAFE,E);
     ddqLB[i] = ddqMinFinal;
     ddqUB[i] = ddqMaxFinal;
     
     # check viability of future state if you apply ddq=ddqMinFinal
-    qNew = q[i] + DT*dq[i] + 0.5*(DT**2)*ddqMinFinal;
-    dqNew = dq[i] + DT*ddqMinFinal;
-    viabViol = isStateViable(qNew, dqNew, qMin, qMax, MAX_VEL, MAX_ACC);
+    qNew = q[i] + DT*dq[i] + 0.5*(DT**2)*ddqMinFinal        #- error_trigger*(0.5*DT**2*MAX_ACC*0.1*random(1) - 0.5*DT**2*MAX_ACC*0.1*random(1)); # adding error;
+    dqNew = dq[i] + DT*ddqMinFinal                          #- error_trigger*(DT*MAX_ACC*0.1*random(1) - DT*MAX_ACC*0.1*random(1)); # adding error;
+    viabViol = isStateViable_2(qNew, dqNew, qMin, qMax, MAX_VEL, MAX_ACC,E);
     if(viabViol!=0.0):
         dqMinViab = - np.sqrt(max(0.0,2*MAX_ACC*(qNew-qMin)));
         print("ERROR Time %d Incoherence in viab constr. qNew %f dqNew %f dqNewMinViab %f ddqMinFinal %f" % (i,qNew,dqNew,dqMinViab,ddqMinFinal));
@@ -188,15 +190,15 @@ for i in range(N_TESTS):
         print("       Trajectory will reach its min %f in %f sec" % (qMinAccConst, t_min));
     
     # check viability of future state if you apply ddq=ddqMaxFinal
-    qNew = q[i] + DT*dq[i] + 0.5*DT**2*ddqMaxFinal          + error_trigger*(0.5*DT**2*MAX_ACC*0.1*random(1) - 0.5*DT**2*MAX_ACC*0.1*random(1)); # adding error
-    dqNew = dq[i] + DT*ddqMaxFinal                          + error_trigger*(DT*MAX_ACC*0.1*random(1) - DT*MAX_ACC*0.1*random(1)); # adding error
-    viabViol = isStateViable(qNew, dqNew, qMin, qMax, MAX_VEL, MAX_ACC);
+    qNew = q[i] + DT*dq[i] + 0.5*DT**2*ddqMaxFinal          #+ error_trigger*(0.5*DT**2*MAX_ACC*0.1*random(1) - 0.5*DT**2*MAX_ACC*0.1*random(1)); # adding error
+    dqNew = dq[i] + DT*ddqMaxFinal                          #+ error_trigger*(DT*MAX_ACC*0.1*random(1) - DT*MAX_ACC*0.1*random(1)); # adding error
+    viabViol = isStateViable_2(qNew, dqNew, qMin, qMax, MAX_VEL, MAX_ACC,E);
     if(viabViol!=0.0):
         dqMaxViab =   np.sqrt(max(0.0,2*MAX_ACC*(qMax-qNew)));
         print("ERROR Time %d Incoherence in viability constraints. dqNew %f dqNewMaxViab %f" % (i,dqNew, dqMaxViab));
 
     # check viability of current state
-    viabViol = isStateViable(q[i], dq[i], qMin, qMax, MAX_VEL, MAX_ACC);
+    viabViol = isStateViable_2(q[i], dq[i], qMin, qMax, MAX_VEL, MAX_ACC,E);
     if(viabViol!=0.0):
         print("ERROR Time %d not viable q=%f, dq=%f, violation=%f" % (i, q[i], dq[i], viabViol));
     
@@ -204,7 +206,7 @@ for i in range(N_TESTS):
     if(ddqMaxFinal<ddqMinFinal-EPS):
         print("ERROR Time %d infeasible constraints: min=%f, max=%f" % (i, ddqMinFinal, ddqMaxFinal));
         
-    (ddqLB_viab[i],ddqUB_viab[i]) = computeAccLimitsFromViability(q[i], dq[i], qMin, qMax, MAX_ACC, DT);
+    (ddqLB_viab[i],ddqUB_viab[i]) = computeAccLimitsFromViability_2(q[i], dq[i], qMin, qMax, MAX_ACC, DT,E);
     
     if(TEST_MAX_ACC):
         ddq[i] = ddqMaxFinal;
@@ -225,13 +227,13 @@ for i in range(N_TESTS):
     else:
         ddq[i] = random(1)*(ddqMaxFinal - ddqMinFinal) + ddqMinFinal;
     
-    if(ddq[i]>MAX_ACC):
-        ddq[i] = MAX_ACC;
+    if(ddq[i]>MAX_ACC-E):
+        ddq[i] = MAX_ACC-E;
     elif(ddq[i]<-MAX_ACC):
-        ddq[i] = -MAX_ACC;
+        ddq[i] = -MAX_ACC+E;
 
-    dq[i+1] = dq[i] + DT*ddq[i];
-    q[i+1]  = q[i] + DT*dq[i] + 0.5*(DT**2)*ddq[i];
+    dq[i+1] = dq[i] + DT*ddq[i]                     #+ error_trigger*(DT*MAX_ACC*fraction*random(1) - DT*MAX_ACC*fraction*random(1)); # adding error;
+    q[i+1]  = q[i] + DT*dq[i] + 0.5*(DT**2)*ddq[i]  #+ error_trigger*(0.5*DT**2*MAX_ACC*fraction*random(1) - 0.5*DT**2*MAX_ACC*fraction*random(1)); # adding error;
     
     
 print("Minimum ddq margin from viability upper bound: %f" % np.min(ddqUB_viab-ddq));
@@ -267,7 +269,7 @@ if(PLOT_STATE_SPACE_PROBABILITY):
     A = np.array([[1, DT], [0, 1]]);
     B = np.array([[0.5*DT**2], [DT]]);
     
-    E = np.array([[-0.01], [-0.01]]);
+    ##E = np.array([[-0.01], [-0.01]]);
     
     G     = computeControlTransitionMatrix(A, B, T);
     A_bar = computeStateTransitionMatrix(A, T);
@@ -277,7 +279,7 @@ if(PLOT_STATE_SPACE_PROBABILITY):
     
     for i in range(len(rdq)):
         for j in range(len(rq)):
-            if(isStateViable(Q[i,j], DQ[i,j], qMin, qMax, MAX_VEL, MAX_ACC)==0.0):
+            if(isStateViable_2(Q[i,j], DQ[i,j], qMin, qMax, MAX_VEL, MAX_ACC,E)==0.0):
                 if((DQ[i,j]>0.0 and Q[i,j]<=qMid - 0.5*(DQ[i,j]**2)/MAX_ACC) or (DQ[i,j]<0.0 and Q[i,j]<=qMid + 0.5 *(DQ[i,j]**2)/MAX_ACC)):
                     Z[i,j] = 100;
                 else:
@@ -451,9 +453,11 @@ if(PLOT_STATE_SPACE):
     leg.get_frame().set_alpha(0.6);
     
     
-    
+    if(TRAJECTORY):
+        ax.plot(q,dq,'k x');
+
     # plot trajectory
-    ax.plot(q,dq,'k x');
+    #ax.plot(q,dq,'k x');
 
     ax.xaxis.set_ticks([0]);
     ax.yaxis.set_ticks([]);
@@ -462,6 +466,8 @@ if(PLOT_STATE_SPACE):
     ax.set_ylim([-1.1*max_vel_from_pos_acc_bounds, 1.1*max_vel_from_pos_acc_bounds]);
     ax.set_xlabel(r'$q$');
     ax.set_ylabel(r'$\dot{q}$');
+    
+           
         
 
     
