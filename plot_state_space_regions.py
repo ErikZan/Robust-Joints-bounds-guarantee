@@ -32,7 +32,7 @@ qMax    = 2.0;
 qMin    = -2.0;
 MAX_VEL = 5.0;
 MAX_ACC = 10.0;
-E = 0.1*MAX_ACC;  
+E = 0.75*MAX_ACC;  
 
 DT_SAFE = 1.01*DT;
 Q_INTERVAL = 0.002; # for plotting the range of possible angles is sampled with this step
@@ -44,7 +44,7 @@ DQ_INTERVAL = 0.02; # for plotting the range of possible velocities is sampled w
 #   qMin + 0.5*t**2*MAX_ACC = 0.5*(qMin+qMax)
 # we can find t=sqrt((qMax-qMin)/MAX_ACC) and then use it to compute the max velocity:
 #   dq(t) = t*MAX_ACC = sqrt(MAX_ACC*(qMax-qMin));
-max_vel_from_pos_acc_bounds = np.sqrt((MAX_ACC-E)*(qMax-qMin));
+max_vel_from_pos_acc_bounds = np.sqrt((MAX_ACC)*(qMax-qMin));
 print("INFO Max velocity is %f, max velocity forced by position and acceleration bounds is %f" % (MAX_VEL, max_vel_from_pos_acc_bounds));
   
 
@@ -53,29 +53,35 @@ rq = np.arange(qMin, qMax+Q_INTERVAL, Q_INTERVAL);
 rdq = np.arange(-max_vel_from_pos_acc_bounds, max_vel_from_pos_acc_bounds+DQ_INTERVAL, DQ_INTERVAL);
 Q, DQ = np.meshgrid(rq, rdq);
 
-Z_up  = -np.ones(Q.shape)*(MAX_ACC-E);
-Z_low = np.ones(Q.shape)*(MAX_ACC-E);
-Z_viab_up  = -np.ones(Q.shape)*(MAX_ACC-E);
-Z_viab_low = np.ones(Q.shape)*(MAX_ACC-E);
-Z_pos_up  = -np.ones(Q.shape)*(MAX_ACC-E);
-Z_pos_low = np.ones(Q.shape)*(MAX_ACC-E);
-Z_vel_up  = -np.ones(Q.shape)*(MAX_ACC-E);
-Z_vel_low = np.ones(Q.shape)*(MAX_ACC-E);
+Z_up  = -np.ones(Q.shape)*(MAX_ACC);
+Z_low = np.ones(Q.shape)*(MAX_ACC);
+Z_viab_up  = -np.ones(Q.shape)*(MAX_ACC);
+Z_viab_low = np.ones(Q.shape)*(MAX_ACC);
+Z_pos_up  = -np.ones(Q.shape)*(MAX_ACC);
+Z_pos_low = np.ones(Q.shape)*(MAX_ACC);
+Z_vel_up  = -np.ones(Q.shape)*(MAX_ACC);
+Z_vel_low = np.ones(Q.shape)*(MAX_ACC);
 Z_regions = np.zeros(Q.shape);
 for i in range(len(rdq)):
     for j in range(len(rq)):
-        (Z_pos_low[i,j], Z_pos_up[i,j]) = computeAccLimitsFromPosLimits_2(Q[i,j], DQ[i,j], qMin, qMax, MAX_ACC, DT,E);
+        (Z_pos_low[i,j], Z_pos_up[i,j]) = computeAccLimitsFromPosLimits_2(Q[i,j], DQ[i,j], qMin, qMax, MAX_ACC, DT,E); # modifica come accb2
+        Z_pos_low[i,j]+=E;
+        Z_pos_up[i,j]-=E;
         Z_vel_low[i,j] = (-MAX_VEL-DQ[i,j])/DT;
         Z_vel_up[i,j] = (MAX_VEL-DQ[i,j])/DT;
+        Z_vel_low[i,j]+=E;
+        Z_vel_up[i,j]-=E;
         if(isStateViable_2(Q[i,j], DQ[i,j], qMin, qMax, MAX_VEL, MAX_ACC,E)==0.0):
             (Z_viab_low[i,j], Z_viab_up[i,j]) = computeAccLimitsFromViability_2(Q[i,j], DQ[i,j], qMin, qMax, MAX_ACC, DT,E);
+            Z_viab_low[i,j]+= E;
+            Z_viab_up[i,j]-= E;
             (Z_low[i,j], Z_up[i,j]) = computeAccLimits_2(Q[i,j], DQ[i,j], qMin, qMax, MAX_VEL, MAX_ACC, DT,E);
             if(Z_pos_up[i,j] == Z_up[i,j]):
                 Z_regions[i,j] = 2.3;
                 #print "Position bound is constraining at ", Q[i,j], DQ[i,j];
             elif(Z_vel_up[i,j] == Z_up[i,j]):
                 Z_regions[i,j] = 1;
-            elif(MAX_ACC - E == Z_up[i,j]):
+            elif(MAX_ACC  == Z_up[i,j]):
                 Z_regions[i,j] = 3;
             elif(Z_viab_up[i,j] == Z_up[i,j]):
                 Z_regions[i,j] = 4;

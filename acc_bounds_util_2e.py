@@ -245,7 +245,7 @@ def computeAccLimitsFromPosLimits_2(q, dq, qMin, qMax, ddqMax, dt,E, verbose=Tru
             # q=qMax -> you're gonna violate the position bound
             ddqUB = ddqMax;
             
-    return (ddqLB+E, ddqUB-E);
+    return (ddqLB, ddqUB);
     
     
 ''' Acceleration limits imposed by viability.
@@ -304,27 +304,31 @@ def computeAccLimits_2(q, dq, qMin, qMax, dqMax, ddqMax, dt,E, verbose=True, ddq
         print("WARNING: specified state (q=%f dq=%f) is not viable (violation %f)" % (q,dq,viabViol));
         
     if(ddqStop==None):
-        ddqStop=ddqMax-E;
+        ddqStop=ddqMax;
         
     ddqUB = np.zeros(4);
     ddqLB = np.zeros(4);
     
     # Acceleration limits imposed by position bounds
     (ddqLB[0], ddqUB[0]) = computeAccLimitsFromPosLimits_2(q, dq, qMin, qMax, ddqMax, dt,E, verbose);
+    ddqLB[0]+=E;
+    ddqUB[0]-=E;
     
     # Acceleration limits imposed by velocity bounds
     # dq[t+1] = dq + dt*ddq < dqMax
     # ddqMax = (dqMax-dq)/dt
     # ddqMin = (dqMin-dq)/dt = (-dqMax-dq)/dt
-    ddqLB[1] = (-dqMax-dq)/dt;
-    ddqUB[1] = (dqMax-dq)/dt;
+    ddqLB[1] = (-dqMax-dq)/dt+E;
+    ddqUB[1] = (dqMax-dq)/dt-E;
     
     # Acceleration limits imposed by viability
     (ddqLB[2], ddqUB[2]) = computeAccLimitsFromViability_2(q, dq, qMin, qMax, ddqStop, dt,E, verbose);
-     
+    ddqLB[2]+=E;
+    ddqUB[2]-=E;
+    
     # Acceleration limits
-    ddqLB[3] = -ddqMax+E;
-    ddqUB[3] = ddqMax-E;
+    ddqLB[3] = -ddqMax;
+    ddqUB[3] = ddqMax;
     
     # Take the most conservative limit for each joint
     ddqLBFinal = np.max(ddqLB);

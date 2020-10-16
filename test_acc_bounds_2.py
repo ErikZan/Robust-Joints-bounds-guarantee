@@ -105,7 +105,7 @@ DT = 0.10;
 VIABILITY_MARGIN = 1e10; # minimum margin to leave between ddq and its bounds found through viability
 error_trigger = 0.0
 fraction = 0.2
-E = 0.45* MAX_ACC;
+E = 0.0q* MAX_ACC;
 ''' State in which acc bounds from pos are stricter than acc bounds from viability '''
 #q0 = -0.086850;
 #dq0 = -0.093971;
@@ -227,11 +227,12 @@ for i in range(N_TESTS):
     else:
         ddq[i] = random(1)*(ddqMaxFinal - ddqMinFinal) + ddqMinFinal;
     
-    if(ddq[i]>MAX_ACC-E):
-        ddq[i] = MAX_ACC-E;
+    if(ddq[i]>MAX_ACC):
+        ddq[i] = MAX_ACC;
     elif(ddq[i]<-MAX_ACC):
-        ddq[i] = -MAX_ACC+E;
+        ddq[i] = -MAX_ACC;
 
+    ddq[i]+=E;
     dq[i+1] = dq[i] + DT*ddq[i]                     #+ error_trigger*(DT*MAX_ACC*fraction*random(1) - DT*MAX_ACC*fraction*random(1)); # adding error;
     q[i+1]  = q[i] + DT*dq[i] + 0.5*(DT**2)*ddq[i]  #+ error_trigger*(0.5*DT**2*MAX_ACC*fraction*random(1) - 0.5*DT**2*MAX_ACC*fraction*random(1)); # adding error;
     
