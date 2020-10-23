@@ -32,7 +32,7 @@ qMax    = 2.0;
 qMin    = -2.0;
 MAX_VEL = 5.0;
 MAX_ACC = 10.0;
-E = 0.75*MAX_ACC;  
+E = 0.99*MAX_ACC;  
 
 DT_SAFE = 1.01*DT;
 Q_INTERVAL = 0.002; # for plotting the range of possible angles is sampled with this step

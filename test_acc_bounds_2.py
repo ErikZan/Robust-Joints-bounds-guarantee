@@ -37,22 +37,7 @@ def computeControlTransitionMatrix(A, B, T):
         G[t*n:(t+1)*n, :m] = A_to_the_t_times_B;
         
     return G;
-
-def computeControlTransitionMatrix_with_error(A, B, T, E):
-    n = B.shape[0];
-    m = B.shape[1];
-    G = np.zeros((T*n, T*m));
-    A_to_the_t_times_B = B;
-    G[0:n,0:m] = B;
-    for t in range(1,T):
-        # copy the line above shifted right
-        G[t*n:(t+1)*n, m:] = G[(t-1)*n:t*n, :-m];
-        # compute A^(t-1)*B        
-        A_to_the_t_times_B = np.dot(A, A_to_the_t_times_B) + E;
-        G[t*n:(t+1)*n, :m] = A_to_the_t_times_B;
-        
-    return G;
-    
+   
 def computeStateTransitionMatrix(A, T):
     n = A.shape[0];
     G = np.zeros((T*n, n));
@@ -61,18 +46,6 @@ def computeStateTransitionMatrix(A, T):
     for t in range(1,T):
         # compute A^(t-1)
         A_to_the_t = np.dot(A, A_to_the_t);
-        G[t*n:(t+1)*n, :] = A_to_the_t;
-        
-    return G;
-
-def computeStateTransitionMatrix_with_error(A, T, E):
-    n = A.shape[0];
-    G = np.zeros((T*n, n));
-    A_to_the_t = A;
-    G[:n,:] = A;
-    for t in range(1,T):
-        # compute A^(t-1)
-        A_to_the_t = np.dot(A, A_to_the_t)+E;
         G[t*n:(t+1)*n, :] = A_to_the_t;
         
     return G;
@@ -87,7 +60,7 @@ EPS = 1e-10;
 TEST_MAX_ACC = True;    # if true select always the maximum acceleration possible 
 TEST_MIN_ACC = False;    # if true select always the minimum acceleration possible 
 TEST_MED_ACC = False;    # if true select always the average of max and min acc
-TEST_MED_POS_ACC = False;    # if true select always the average of max and min acc imposed by pos bounds (saturated if necessary)
+TEST_MED_POS_ACC = True;    # if true select always the average of max and min acc imposed by pos bounds (saturated if necessary)
 PLOT_STATE_SPACE = True;
 PLOT_STATE_SPACE_DECRE = True;
 PLOT_STATE_SPACE_PADOIS = True;
@@ -98,14 +71,14 @@ qMax    = 2.0;
 qMin    = -2.0;
 MAX_VEL = 5.0;
 MAX_ACC = 10.0;
-q0      =  0.0
+q0      =  0.0;
 dq0     =  0.0;
-N_TESTS = 20;
+N_TESTS = 50;
 DT = 0.10;
 VIABILITY_MARGIN = 1e10; # minimum margin to leave between ddq and its bounds found through viability
-error_trigger = 0.0
-fraction = 0.2
-E = 0.0q* MAX_ACC;
+E = 0.3* MAX_ACC;
+# add fraction and trigged
+
 ''' State in which acc bounds from pos are stricter than acc bounds from viability '''
 #q0 = -0.086850;
 #dq0 = -0.093971;
@@ -123,6 +96,7 @@ DQ_INTERVAL = 0.2; # for plotting the range of possible velocities is sampled wi
 # we can find t=sqrt((qMax-qMin)/MAX_ACC) and then use it to compute the max velocity:
 #   dq(t) = t*MAX_ACC = sqrt(MAX_ACC*(qMax-qMin));
 max_vel_from_pos_acc_bounds = np.sqrt((MAX_ACC-E)*(qMax-qMin));
+
 print("INFO Max velocity is %f, max velocity forced by position and acceleration bounds is %f" % (MAX_VEL, max_vel_from_pos_acc_bounds));
 
 
@@ -232,7 +206,11 @@ for i in range(N_TESTS):
     elif(ddq[i]<-MAX_ACC):
         ddq[i] = -MAX_ACC;
 
-    ddq[i]+=E;
+    if(ddq[i]>=0):
+        ddq[i]+=E # *random(1);
+    elif(ddq[i]<0):
+        ddq[i]-=E # *random(1);
+      
     dq[i+1] = dq[i] + DT*ddq[i]                     #+ error_trigger*(DT*MAX_ACC*fraction*random(1) - DT*MAX_ACC*fraction*random(1)); # adding error;
     q[i+1]  = q[i] + DT*dq[i] + 0.5*(DT**2)*ddq[i]  #+ error_trigger*(0.5*DT**2*MAX_ACC*fraction*random(1) - 0.5*DT**2*MAX_ACC*fraction*random(1)); # adding error;
     
@@ -270,14 +248,9 @@ if(PLOT_STATE_SPACE_PROBABILITY):
     A = np.array([[1, DT], [0, 1]]);
     B = np.array([[0.5*DT**2], [DT]]);
     
-    ##E = np.array([[-0.01], [-0.01]]);
-    
     G     = computeControlTransitionMatrix(A, B, T);
     A_bar = computeStateTransitionMatrix(A, T);
-    
-    #G     = computeControlTransitionMatrix_with_error(A, B, T, E);
-    #A_bar = computeStateTransitionMatrix_with_error(A, T, E);
-    
+      
     for i in range(len(rdq)):
         for j in range(len(rq)):
             if(isStateViable_2(Q[i,j], DQ[i,j], qMin, qMax, MAX_VEL, MAX_ACC,E)==0.0):
@@ -529,7 +502,7 @@ if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
     ax[2].yaxis.set_ticks([np.min(ddq), np.max(ddq)]);
     ax[2].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
     
-    plut.saveFigure('max_acc_traj_'+str(int(1e3*DT))+'_ms');
+    plut.saveFigure('max_acc_traj_'+str(E/MAX_ACC*100)+'%'+str(int(1e3*DT))+'_ms');
     
 plt.show();
     
