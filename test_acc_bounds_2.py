@@ -209,7 +209,7 @@ for i in range(N_TESTS):
     if(ddq[i]>=0):
         ddq[i]+=E # *random(1);
     elif(ddq[i]<0):
-        ddq[i]-=E # *random(1);
+        ddq[i]-=E # *random(1); 
       
     dq[i+1] = dq[i] + DT*ddq[i]                     #+ error_trigger*(DT*MAX_ACC*fraction*random(1) - DT*MAX_ACC*fraction*random(1)); # adding error;
     q[i+1]  = q[i] + DT*dq[i] + 0.5*(DT**2)*ddq[i]  #+ error_trigger*(0.5*DT**2*MAX_ACC*fraction*random(1) - 0.5*DT**2*MAX_ACC*fraction*random(1)); # adding error;

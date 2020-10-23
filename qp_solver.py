@@ -92,31 +92,31 @@ class qpSolver (object):
         else:
             self.grad = np.copy(g);
             
-        if(x_lb!=None):
+        if(x_lb is not None):
             if(type(x_lb)==np.matrix):
                 self.x_lb = x_lb.A.squeeze();
             else:
                 self.x_lb = np.copy(x_lb);
                 
-        if(x_ub!=None):
+        if(x_ub is not None):
             if(type(x_ub)==np.matrix):
                 self.x_ub = x_ub.A.squeeze();
             else:
                 self.x_ub = np.copy(x_ub);
                 
-        if(b_lb!=None):
+        if(b_lb is not None):
             if(type(b_lb)==np.matrix):
                 self.b_lb = b_lb.A.squeeze();
             else:
                 self.b_lb = np.copy(b_lb);
                 
-        if(b_ub!=None):
+        if(b_ub is not None):
             if(type(b_ub)==np.matrix):
                 self.b_ub = b_ub.A.squeeze();
             else:
                 self.b_ub = np.copy(b_ub);
                 
-        if(B!=None):
+        if(B is not None):
             if(type(B)==np.matrix):
                 self.B = B.A.squeeze();
             else:

@@ -8,7 +8,7 @@ from time import time
 import os
 
 # Change following your setup.
-MODELPATH = ['/home/adelpret/repos/20160606_tro_acc_limits/data/baxter/',]
+MODELPATH = ['/home/erik/Downloads/baxter_common-master/',]
 
 NQ_OFFSET = 1
 NV_OFFSET = 1
@@ -31,7 +31,7 @@ class BaxterWrapper(RobotWrapper):
     v_def = [];
 
     def __init__(self, filename = MODELPATH[0]+'baxter_description/urdf/baxter.urdf'):
-        RobotWrapper.__init__(self, filename, MODELPATH);
+        RobotWrapper.initFromURDF(self, filename, MODELPATH);
         
         self.Q_INIT = np.matlib.zeros((self.nq-NQ_OFFSET,1));
         self.q_def = np.matlib.zeros((self.nq,1));
@@ -74,13 +74,13 @@ class BaxterWrapper(RobotWrapper):
     def bias(self,q,v):
         self.q_def[NQ_OFFSET:] = q.reshape((self.nq-NQ_OFFSET,1));
         self.v_def[NV_OFFSET:] = v.reshape((self.nv-NV_OFFSET,1));
-        return RobotWrapper.bias(self, self.q_def, self.v_def)[NV_OFFSET:];
+        return RobotWrapper.nle(self, self.q_def, self.v_def)[NV_OFFSET:];
 #    def gravity(self,q):
 #        return se3.rnea(self.model,self.data,q,self.v0,self.v0)
 
     def position(self,q,index):
         self.q_def[NQ_OFFSET:] = q.reshape((self.nq-NQ_OFFSET,1));
-        return RobotWrapper.position(self, self.q_def, index);
+        return RobotWrapper.placement(self, self.q_def, index);
         
     def velocity(self,q,v,index):
         self.q_def[NQ_OFFSET:] = q.reshape((self.nq-NQ_OFFSET,1));
@@ -89,14 +89,15 @@ class BaxterWrapper(RobotWrapper):
         
     def jacobian(self,q,index):
         self.q_def[NQ_OFFSET:] = q.reshape((self.nq-NQ_OFFSET,1));
-        return RobotWrapper.jacobian(self, self.q_def, index)[:,NV_OFFSET:];
+        RobotWrapper.computeJointJacobian(self,self.q_def, index);
+        return RobotWrapper.getJointJacobian(self, index)[:,NV_OFFSET:];
         
     def dJdq(self, q, v, index):
         self.q_def[NQ_OFFSET:] = q.reshape((self.nq-NQ_OFFSET,1));
         self.v_def[NV_OFFSET:] = v.reshape((self.nv-NV_OFFSET,1));
         se3.forwardKinematics(self.model, self.data, self.q_def, self.v_def, self.v0);
         dJdq = self.data.a[index]; 
-        dJdq.linear -= np.matrix(np.cross(dJdq.linear.A.squeeze(), dJdq.angular.A.squeeze())).T;
+        dJdq.linear -= np.cross(dJdq.linear.squeeze(), dJdq.angular.squeeze());
         return dJdq;
 
 
@@ -120,7 +121,7 @@ class BaxterWrapper(RobotWrapper):
             if(print_time_every>0.0 and t*dt%print_time_every==0.0):
                 print("%.1f"%(t*dt));
                 
-    def startCapture(self, filename, extension='jpeg', path='/home/adelpret/capture/'):
+    def startCapture(self, filename, extension='jpeg', path='/home/erikz/Download/'):
         if(not os.path.exists(path)):
             os.makedirs(path);
         self.viewer.gui.startCapture(self.windowID, path+filename, extension);

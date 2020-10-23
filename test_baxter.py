@@ -42,7 +42,7 @@ def plot_bounded_joint_quantity(time, x, X_MIN, X_MAX, name, xlabel='', ylabel='
 
 # Convertion from translation+quaternion to SE3 and reciprocally
 q2m = lambda q: se3.SE3( se3.Quaternion(q[6,0],q[3,0],q[4,0],q[5,0]).matrix(), q[:3])
-m2q = lambda M: np.vstack([ M.translation,se3.Quaternion(M.rotation).coeffs() ])
+m2q = lambda M: np.concatenate([ M.translation,se3.Quaternion(M.rotation).coeffs() ])
 
 ''' PLOT-RELATED USER PARAMETERS '''
 LW = 4;     # line width
@@ -52,9 +52,9 @@ PLOT_JOINT_POS_VEL_ACC_TAU = False;
 Q_INTERVAL = 0.001; # the range of possible angles is sampled with this step for plotting
 PLAY_TRAJECTORY_ONLINE = False;
 PLAY_TRAJECTORY_AT_THE_END = True;
-CAPTURE_IMAGES = True;
+CAPTURE_IMAGES = False;
 plut.SAVE_FIGURES = False;
-plut.FIGURE_PATH = '/home/adelpret/repos/20160606_tro_acc_limits/paper_tro/figures/baxter/';
+plut.FIGURE_PATH = '/home/erikz/Download/';
 IMAGES_FILE_NAME = 'baxter_viab_dt_2x';
 BACKGROUND_COLOR = (1.0, 1.0, 1.0, 1.0);
 ''' END OF PLOT-RELATED USER PARAMETERS '''
@@ -81,8 +81,8 @@ DDQ_MAX = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,
 #                     12.0 ,2.0, 33.0, 54.0, 358.0, 485.0, 26257.0]);
 #DDQ_MIN = np.array([-12.0, -2.0, -33.0, -54.0, -358.0, -485.0, -26257.0,    
 #                    -12.0, -2.0, -33.0, -54.0, -358.0, -485.0, -26257.0])
-q0 = np.matrix([[ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ]]).T
-Q_POSTURE = np.matrix(0.5*(Q_MIN+Q_MAX)).T;
+q0 = np.array([ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ])
+Q_POSTURE = np.array(0.5*(Q_MIN+Q_MAX));
 Q_POSTURE[8:] = 0.0;
 ''' END OF CONTROLLER USER PARAMETERS '''
 
@@ -90,9 +90,9 @@ TEST_NAME = 'baxter_'+ACC_BOUNDS_TYPE+'_dt_'+str(int(DT_SAFE/DT));
 
 M_des = q2m(x_des);
 robot = BaxterWrapper();
-robot.initDisplay(loadModel=False)
-robot.loadDisplayModel("world/pinocchio", "pinocchio"); #, MODELPATH)
-
+robot.initViewer(loadModel=False)
+robot.loadViewerModel( "pinocchio"); #, MODELPATH)
+robot.viewer.gui.setCameraTransform('python-pinocchio',[3.5000033378601074, -7.042121978884097e-07, -5.638392508444667e-07, 0.5374045968055725, 0.5444704294204712, 0.4312002956867218, 0.47834569215774536])
 robot.viewer.gui.setLightingMode('world/floor', 'OFF');
 robot.viewer.gui.setVisibility('world/floor', 'OFF');
 #robot.viewer.gui.setBackgroundColor(robot.windowID, BACKGROUND_COLOR);
@@ -114,14 +114,14 @@ else:
 
 # spatial velocity to go from M to Mdes, expressed in frame M, is log(M.inverse()*Mdes)
 NT = int(T/DT);
-q = np.matlib.zeros((NQ,NT));
-dq = np.matlib.zeros((NQ,NT));
-ddq = np.matlib.zeros((NQ,NT-1));
-tau = np.matlib.zeros((NQ,NT-1));
-x = np.matlib.zeros((7,NT));
-dx = np.matlib.zeros((6,NT));
-ddx = np.matlib.zeros((6,NT));
-ddx_des = np.matlib.zeros((6,NT));
+q = np.zeros((NQ,NT));
+dq = np.zeros((NQ,NT));
+ddq = np.zeros((NQ,NT-1));
+tau = np.zeros((NQ,NT-1));
+x = np.zeros((7,NT));
+dx = np.zeros((6,NT));
+ddx = np.zeros((6,NT));
+ddx_des = np.zeros((6,NT));
 ddq_lb = np.zeros((NQ,NT-1));
 ddq_ub = np.zeros((NQ,NT-1));
 
@@ -133,7 +133,7 @@ dJdq = robot.dJdq(q[:,0], dq[:,0], IDEE);
 x[:,0] = m2q(M);
 GOAL_REACHED = False;
 for t in range(NT-1):
-    ddx_des[:,t] = kp*se3.log(M.inverse()*M_des).vector - kd*J*dq[:,t];
+    ddx_des[:,t] = kp*se3.log(M.inverse()*M_des).vector - kd*J@dq[:,t];
     ddq_post_des = kp_post*(Q_POSTURE - q[:,t]) - kd_post*dq[:,t];
     MM = robot.mass(q[:,t]);
     h = robot.bias(q[:,t], dq[:,t]);
@@ -161,21 +161,21 @@ for t in range(NT-1):
         hess = np.dot(J.T, J) + W_POSTURE*np.identity(NQ);
         grad = -np.dot(J.T, a) - W_POSTURE*ddq_post_des;
         if(CONSTRAIN_JOINT_TORQUES):
-            b_lb = -TAU_MAX - h.A.squeeze();
-            b_ub =  TAU_MAX - h.A.squeeze();
+            b_lb = -TAU_MAX - h;
+            b_ub =  TAU_MAX - h;
             ddq_des = solver.solve(hess, grad, ddq_lb[:,t], ddq_ub[:,t], 1.0*MM, 1.0*b_lb, 1.0*b_ub);
         else:
             ddq_des = solver.solve(hess, grad, ddq_lb[:,t], ddq_ub[:,t]);
-        ddq[:,t] = ddq_des.reshape((NQ,1));
+        ddq[:,t] = ddq_des.reshape((NQ));
     else:
         print("Error unrecognized control law:", CTRL_LAW);
 
-    ddx[:,t] = J*ddq[:,t] + dJdq.vector;
-    ddx[:3,t] = M.rotation*ddx[:3,t];
-    ddx[3:,t] = M.rotation*ddx[3:,t];
-    ddx_des[:3,t] = M.rotation*ddx_des[:3,t];
-    ddx_des[3:,t] = M.rotation*ddx_des[3:,t];        
-    tau[:,t] = MM*ddq[:,t] + h;
+    ddx[:,t] = J@ddq[:,t] + dJdq.vector;
+    ddx[:3,t] = M.rotation@ddx[:3,t];
+    ddx[3:,t] = M.rotation@ddx[3:,t];
+    ddx_des[:3,t] = M.rotation@ddx_des[:3,t];
+    ddx_des[3:,t] = M.rotation@ddx_des[3:,t];        
+    tau[:,t] = MM@ddq[:,t] + h;
     
     ''' Numerical Integration '''
     q[:,t+1] = q[:,t] + DT*dq[:,t] + 0.5*DT*DT*ddq[:,t];
@@ -189,7 +189,7 @@ for t in range(NT-1):
     J = robot.jacobian(q[:,t+1],IDEE);
     dJdq = robot.dJdq(q[:,t+1], dq[:,t+1], IDEE);
     x[:,t+1] = m2q(M);
-    dx[:,t+1] = J*dq[:,t+1];
+    dx[:,t+1] = J@dq[:,t+1];
 
 print('Final e-e pose x(T))', m2q(M).T);
 print('Difference between desired and measured e-e pose: M.inverse()*M_des', m2q(M.inverse()*M_des).T)
