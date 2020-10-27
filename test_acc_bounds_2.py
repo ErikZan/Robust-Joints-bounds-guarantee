@@ -57,6 +57,7 @@ EPS = 1e-10;
 LW = 2;
 EPS = 1e-10;
 
+# MAX and MIN are the only supported 
 TEST_MAX_ACC = True;    # if true select always the maximum acceleration possible 
 TEST_MIN_ACC = False;    # if true select always the minimum acceleration possible 
 TEST_MED_ACC = False;    # if true select always the average of max and min acc
@@ -206,11 +207,11 @@ for i in range(N_TESTS):
     elif(ddq[i]<-MAX_ACC):
         ddq[i] = -MAX_ACC;
 
-    if(ddq[i]>=0):
+    if(TEST_MAX_ACC):     # if true select always the maximum acceleration possible 
         ddq[i]+=E # *random(1);
-    elif(ddq[i]<0):
+    elif(TEST_MIN_ACC):
         ddq[i]-=E # *random(1); 
-      
+
     dq[i+1] = dq[i] + DT*ddq[i]                     #+ error_trigger*(DT*MAX_ACC*fraction*random(1) - DT*MAX_ACC*fraction*random(1)); # adding error;
     q[i+1]  = q[i] + DT*dq[i] + 0.5*(DT**2)*ddq[i]  #+ error_trigger*(0.5*DT**2*MAX_ACC*fraction*random(1) - 0.5*DT**2*MAX_ACC*fraction*random(1)); # adding error;
     

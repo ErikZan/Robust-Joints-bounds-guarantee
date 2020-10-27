@@ -19,7 +19,7 @@ import matplotlib.ticker as ticker
 import matplotlib as mpl
 
 from qp_solver import qpSolver
-from acc_bounds_util import computeMultiAccLimits
+from acc_bounds_util_2e import computeMultiAccLimits_2
 from baxter_wrapper import BaxterWrapper, Q_MIN, Q_MAX, DQ_MAX, TAU_MAX, MODELPATH
                 
 def plot_bounded_joint_quantity(time, x, X_MIN, X_MAX, name, xlabel='', ylabel=''):
@@ -45,13 +45,13 @@ q2m = lambda q: se3.SE3( se3.Quaternion(q[6,0],q[3,0],q[4,0],q[5,0]).matrix(), q
 m2q = lambda M: np.concatenate([ M.translation,se3.Quaternion(M.rotation).coeffs() ])
 
 ''' PLOT-RELATED USER PARAMETERS '''
-LW = 4;     # line width
+LW = 3;     # line width
 PLOT_END_EFFECTOR_POS = True;
-PLOT_END_EFFECTOR_ACC = False;
+PLOT_END_EFFECTOR_ACC = True;
 PLOT_JOINT_POS_VEL_ACC_TAU = True;
 Q_INTERVAL = 0.001; # the range of possible angles is sampled with this step for plotting
-PLAY_TRAJECTORY_ONLINE = True;
-PLAY_TRAJECTORY_AT_THE_END = False;
+PLAY_TRAJECTORY_ONLINE = False;
+PLAY_TRAJECTORY_AT_THE_END = True;
 CAPTURE_IMAGES = False;
 plut.SAVE_FIGURES = False;
 plut.FIGURE_PATH = '/home/erikz/Download/';
@@ -64,24 +64,26 @@ CTRL_LAW = 'IK_QP'; #'IK_QP', 'IK'
 ACC_BOUNDS_TYPE = 'VIAB'; #'VIAB', 'NAIVE'
 CONSTRAIN_JOINT_TORQUES = False;
 END_EFFECTOR_NAME = 'left_w2'; #'left_w2'; left_wrist
-W_POSTURE = 1e-3;
-T = 5.0;    # total simulation time
-DT = 0.01;  # time step
+W_POSTURE = 1.0e-3; # 1e-3
+T = 10.0;    # total simulation time
+DT = 0.05;  # time step
 DT_SAFE =1.01*DT; # 2*DT;
-kp = 1000; # 10
-kp_post = 1000;
+kp = 10; # 10
+kp_post = 10;
 kd = 2*sqrt(kp);
 kd_post = 2*sqrt(kp_post);
+
 #x_des = np.array([[0.3, 0.30, 1.23, 0.15730328, 0.14751489, 0.48883663,  0.845301]]).T;
-x_des = np.array([[0.2,  0.4062898 ,  1.24693176, -0.01354349,  0.0326968 , 0.38244455,  0.92330042]]).T; # x_des = np.array([[0.21128912,  0.4062898 ,  1.24693176, -0.01354349,  0.0326968 , 0.38244455,  0.92330042]]).T;
+x_des = np.array([[0.3, 0.3, 0.3, 0.15730328, 0.14751489, 0.48883663,  0.845301]]).T; #x_des = np.array([[0.5,  0.5 ,  1.5, -0.01354349,  0.0326968 , 0.38244455,  0.92330042]]).T;
 #DDQ_MAX = 5.0*np.ones(14);
-DDQ_MAX = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
+DDQ_MAX = np.array([ 12.0, 12.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
                      12.0 ,2.0, 30.0, 30.0, 30.0, 30.0, 30.0]);
 #DDQ_MAX = np.array([ 12.0, 2.0, 33.0, 54.0, 358.0, 485.0, 26257.0,     
 #                     12.0 ,2.0, 33.0, 54.0, 358.0, 485.0, 26257.0]);
 #DDQ_MIN = np.array([-12.0, -2.0, -33.0, -54.0, -358.0, -485.0, -26257.0,    
 #                    -12.0, -2.0, -33.0, -54.0, -358.0, -485.0, -26257.0])
-q0 = np.array([ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ])
+E = DDQ_MAX[2]*0.0;
+q0 = np.array([ 0. , -0.0,  0. ,  0.0,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ]) ;# q0 = np.array([ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ])
 Q_POSTURE = np.array(0.5*(Q_MIN+Q_MAX));
 Q_POSTURE[8:] = 0.0;
 ''' END OF CONTROLLER USER PARAMETERS '''
@@ -92,7 +94,7 @@ M_des = q2m(x_des);
 robot = BaxterWrapper();
 robot.initViewer(loadModel=False)
 robot.loadViewerModel( "pinocchio"); #, MODELPATH)
-robot.viewer.gui.setCameraTransform('python-pinocchio',[3.5000033378601074, -7.042121978884097e-07, -5.638392508444667e-07, 0.5374045968055725, 0.5444704294204712, 0.4312002956867218, 0.47834569215774536])
+robot.viewer.gui.setCameraTransform('python-pinocchio',[3.5000033378601074, -5.8143712067249e-07, 6.62247678917538e-09, 0.49148452281951904, 0.5107253193855286, 0.4845828115940094, 0.5126227140426636]); #[3.5000033378601074, -7.042121978884097e-07, -5.638392508444667e-07, 0.5374045968055725, 0.5444704294204712, 0.4312002956867218, 0.47834569215774536])
 robot.viewer.gui.setLightingMode('world/floor', 'OFF');
 robot.viewer.gui.setVisibility('world/floor', 'OFF');
 #robot.viewer.gui.setBackgroundColor(robot.windowID, BACKGROUND_COLOR);
@@ -128,7 +130,7 @@ ddq_ub = np.zeros((NQ,NT-1));
 ''' initialize '''
 q[:,0] = q0;
 M = robot.position(q[:,0],IDEE);
-J = robot.jacobian(q[:,0],IDEE);
+J = robot.jacobian(q[:,0],IDEE); # always zero ??? why ???
 dJdq = robot.dJdq(q[:,0], dq[:,0], IDEE);
 x[:,0] = m2q(M);
 GOAL_REACHED = False;
@@ -148,7 +150,7 @@ for t in range(NT-1):
         ddq[:,t] = pinv(J, W_POSTURE)*(ddx_des[:,t] - dJdq.vector);                
     elif(CTRL_LAW=='IK_QP'):
         if(ACC_BOUNDS_TYPE=='VIAB'):
-            (ddq_lb[:,t], ddq_ub[:,t]) = computeMultiAccLimits(q[:,t], dq[:,t], Q_MIN, Q_MAX, DQ_MAX, DDQ_MAX, DT_SAFE);
+            (ddq_lb[:,t], ddq_ub[:,t]) = computeMultiAccLimits_2(q[:,t], dq[:,t], Q_MIN, Q_MAX, DQ_MAX, DDQ_MAX, DT_SAFE,E);
         elif(ACC_BOUNDS_TYPE=='NAIVE'):
             for j in range(NQ):
                 ddq_ub[j,t] = min( DDQ_MAX[j], ( DQ_MAX[j]-dq[j,t])/DT_SAFE, 2.0*(Q_MAX[j]-q[j,t]-DT_SAFE*dq[j,t])/(DT_SAFE**2));
@@ -182,11 +184,13 @@ for t in range(NT-1):
     dq[:,t+1] = dq[:,t] + DT*ddq[:,t];
     if(PLAY_TRAJECTORY_ONLINE):
         robot.display(q[:,t+1]);
-#       sleep(DT);
+        # sleep(DT); ###### prima era commentata
     
     ''' store data '''
     M = robot.position(q[:,t+1],IDEE);
     J = robot.jacobian(q[:,t+1],IDEE);
+    print(robot.computeJointJacobian(q[:,t+1],IDEE));
+    print(robot.getJointJacobian(IDEE));
     dJdq = robot.dJdq(q[:,t+1], dq[:,t+1], IDEE);
     x[:,t+1] = m2q(M);
     dx[:,t+1] = J@dq[:,t+1];
@@ -248,12 +252,12 @@ for j in range(7):
         np.max(np.abs(tau[j,:])) > TAU_MAX[j]):
                 
         if(np.max(q[j,:]) > qMax):
-            print("Joint %d hit up bound with vel %f" % (j, dq[j, np.where(q[j,:].A.squeeze()>qMin)[0][0]]));
+            print("Joint %d hit up bound with vel %f" % (j, dq[j, np.where(q[j,:]>qMin)[0][0]]));
         elif(qMax-np.max(q[j,:]) < 0.1*qHalf):
             print("Joint %d got close to up bound, qMax=%f, max(q)=%f" % (j, qMax, np.max(q[j,:])));
             
         if(np.min(q[j,:]) < qMin):
-            print("Joint %d hit low bound with vel %f" % (j, dq[j, np.where(q[j,:].A.squeeze()<qMin)[0][0]]));
+            print("Joint %d hit low bound with vel %f" % (j, dq[j, np.where(q[j,:]<qMin)[0][0]]));
         elif(np.min(q[j,:])-qMin < 0.1*qHalf):
             print("Joint %d got close to low bound, min(q)=%f, qMin=%f" % (j, np.min(q[j,:]), qMin));
             
@@ -266,7 +270,7 @@ for j in range(7):
         f, ax = plt.subplots(3, 2, sharex=True);
         ax = ax.reshape(6);
         plut.movePlotSpines(ax[5], [0, 0]);
-        ax[5].plot(time[:-1], ddq[j,:].A.squeeze(), linewidth=LW);
+        ax[5].plot(time[:-1], ddq[j,:], linewidth=LW); # ax[5].plot(time[:-1], ddq[j,:].A.squeeze(), linewidth=LW);
         ax[5].plot(time[:-1], ddq_lb[j,:], 'r--');
         ax[5].plot(time[:-1], ddq_ub[j,:], 'r--');
         ax[5].set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
@@ -274,7 +278,7 @@ for j in range(7):
         
         # plot velocity
         plut.movePlotSpines(ax[3], [0, 0]);
-        ax[3].plot(time, dq[j,:].A.squeeze(), linewidth=LW);
+        ax[3].plot(time, dq[j,:], linewidth=LW); #.A.squeeze()
         ax[3].plot([time[0], time[-1]], [DQ_MAX[j], DQ_MAX[j]], 'r--');
         ax[3].plot([time[0], time[-1]], [-DQ_MAX[j], -DQ_MAX[j]], 'r--');
         ax[3].set_ylabel(r'$\dot{q}$ [rad/s]');
@@ -282,7 +286,7 @@ for j in range(7):
         
         # plot position
         plut.movePlotSpines(ax[1], [qMin, 0]);
-        ax[1].plot(time, q[j,:].A.squeeze(), linewidth=LW);
+        ax[1].plot(time, q[j,:], linewidth=LW); # .A.squeeze()
         ax[1].plot([time[0], time[-1]], [Q_MAX[j], Q_MAX[j]], 'r--');
         ax[1].plot([time[0], time[-1]], [Q_MIN[j], Q_MIN[j]], 'r--');
         ax[1].set_ylabel(r'$q$ [rad]');
@@ -303,7 +307,7 @@ for j in range(7):
         ax.plot([qMin, qMin], [-DQ_MAX[j], +DQ_MAX[j]], 'k--');
         ax.plot([qMax, qMax], [-DQ_MAX[j], +DQ_MAX[j]], 'k--');
         # plot state-space trajectory
-        ax.plot(q[j,:].A.squeeze(), dq[j,:].A.squeeze(), 'b-', linewidth=LW);
+        ax.plot(q[j,:], dq[j,:], 'b-', linewidth=LW); # .A.squeeze() .A.squeeze()
         ax.xaxis.set_ticks([qMin, q[j,0], qMax]);
         ax.yaxis.set_ticks([-DQ_MAX[j], 0, DQ_MAX[j]]);
         ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));

@@ -356,5 +356,5 @@ def computeMultiAccLimits_2(q, dq, qMin, qMax, dqMax, ddqMax, dt,E, verbose=True
     if(ddqStop==None):
         ddqStop = ddqMax;
     for i in range(len(q)):
-        (ddqLB[i], ddqUB[i]) = computeAccLimits(q[i], dq[i], qMin[i], qMax[i], dqMax[i], ddqMax[i], dt, verbose, ddqStop[i]);
+        (ddqLB[i], ddqUB[i]) = computeAccLimits_2(q[i], dq[i], qMin[i], qMax[i], dqMax[i], ddqMax[i], dt,E, verbose, ddqStop[i]);
     return (ddqLB, ddqUB);
