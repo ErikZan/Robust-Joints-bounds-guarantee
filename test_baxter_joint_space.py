@@ -41,7 +41,7 @@ def plot_bounded_joint_quantity(time, x, X_MIN, X_MAX, name, xlabel='', ylabel='
     return ax;
 
 # Convertion from translation+quaternion to SE3 and reciprocally
-q2m = lambda q: se3.SE3( se3.Quaternion(q[6,0],q[3,0],q[4,0],q[5,0]).matrix(), q[:3])
+q2m = lambda q: se3.SE3( se3.Quaternion(q[6,0],q[3,0],q[4,0],q[5,0]).array(), q[:3]) # matrix
 m2q = lambda M: np.vstack([ M.translation,se3.Quaternion(M.rotation).coeffs() ])
 
 ''' PLOT-RELATED USER PARAMETERS '''
@@ -49,19 +49,19 @@ LW = 4;     # line width
 LINE_ALPHA = 1.0;
 LEGEND_ALPHA = 1.0;
 line_styles     =["c-", "b--", "g-.", "k:", "m-"];
-PLOT_JOINT_POS_VEL_ACC = False;
-PLOT_STATE_SPACE = False;
+PLOT_JOINT_POS_VEL_ACC = True;
+PLOT_STATE_SPACE = True;
 Q_INTERVAL = 0.001; # the range of possible angles is sampled with this step for plotting
 PLAY_TRAJECTORY_ONLINE = False;
-PLAY_TRAJECTORY_AT_THE_END = False;
+PLAY_TRAJECTORY_AT_THE_END = True;
 CAPTURE_IMAGES = False;
-plut.SAVE_FIGURES = True;
-plut.FIGURE_PATH = '/home/adelpret/repos/20160606_tro_acc_limits/paper_tro/figures/joint_space/';
+plut.SAVE_FIGURES = False;
+plut.FIGURE_PATH = '/home/erik/Downloads';
 IMAGES_FILE_NAME = 'baxter_viab_dt_2x';
 ''' END OF PLOT-RELATED USER PARAMETERS '''
 
 ''' CONTROLLER USER PARAMETERS '''
-ACC_BOUNDS_TYPE = 'NAIVE'; #'VIAB', 'NAIVE'
+ACC_BOUNDS_TYPE = 'VIAB'; #'VIAB', 'NAIVE'
 T = 4.0;    # total simulation time
 DT = 0.01;  # time step
 #DT_SAFE = np.array([2, 5, 20])*DT;
@@ -70,7 +70,7 @@ kp = 1000;
 kd = 2*sqrt(kp);
 DDQ_MAX = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
                      12.0 ,2.0, 30.0, 30.0, 30.0, 30.0, 30.0]);
-q0 = np.matrix([[ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ]]).T
+q0 = np.array([[ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ]]).T # matrix
 Q_DES = np.array(0.5*(Q_MIN+Q_MAX)).T;
 Q_DES[0] = Q_MAX[0] + 0.5;
 Q_DES[8:] = 0.0;
@@ -82,8 +82,11 @@ if(len(DT_SAFE)==1):
 TEST_NAME = ACC_BOUNDS_TYPE+'_dt_'+str((DT_SAFE/DT).astype(int))[2:-1].replace(' ', '_');
 
 robot = BaxterWrapper();
-robot.initDisplay(loadModel=False)
-robot.loadDisplayModel("world/pinocchio", "pinocchio", MODELPATH)
+robot.initViewer(loadModel=False)
+robot.loadViewerModel( "pinocchio");
+robot.viewer.gui.setCameraTransform('python-pinocchio',[3.5000033378601074, -5.8143712067249e-07, 6.62247678917538e-09, 0.49148452281951904, 0.5107253193855286, 0.4845828115940094, 0.5126227140426636]); #[3.5000033378601074, -7.042121978884097e-07, -5.638392508444667e-07, 0.5374045968055725, 0.5444704294204712, 0.4312002956867218, 0.47834569215774536])
+#robot.initDisplay(loadModel=False)
+#robot.loadDisplayModel("world/pinocchio", "pinocchio", MODELPATH)
 
 robot.viewer.gui.setLightingMode('world/floor', 'OFF');
 #print robot.model
@@ -105,7 +108,7 @@ ddq_ub = np.zeros((NQ,NT-1,NDT));
 for nt in range(NDT):
     ''' initialize '''
     pos_bound_viol = NQ*[False,]    
-    q[:,0,nt] = q0.A.squeeze();
+    q[:,0,nt] = q0.squeeze();
     for t in range(NT-1):
         ddq_des[:,t,nt] = kp*(Q_DES - q[:,t,nt]) - kd*dq[:,t,nt];
         
@@ -157,9 +160,9 @@ if(PLAY_TRAJECTORY_AT_THE_END):
 time = np.arange(0, NT*DT, DT);
 
 if(PLOT_JOINT_POS_VEL_ACC):
-    plot_bounded_joint_quantity(time,        q,       Q_MIN,   Q_MAX, 'Joint positions', 'Time [s]', r'$q$ [rad]');
-    plot_bounded_joint_quantity(time,       dq,   -1*DQ_MAX,  DQ_MAX, 'Joint velocities', 'Time [s]', r'$q$ [rad/s]');
-    plot_bounded_joint_quantity(time[:-1], ddq,  -1*DDQ_MAX, DDQ_MAX, 'Joint accelerations', 'Time [s]', r'$\ddot{q}$ [rad/s${}^2$]');
+    plot_bounded_joint_quantity(time,        q.squeeze(),       Q_MIN,   Q_MAX, 'Joint positions', 'Time [s]', r'$q$ [rad]');
+    plot_bounded_joint_quantity(time,       dq.squeeze(),   -1*DQ_MAX,  DQ_MAX, 'Joint velocities', 'Time [s]', r'$q$ [rad/s]');
+    plot_bounded_joint_quantity(time[:-1], ddq.squeeze(),  -1*DDQ_MAX, DDQ_MAX, 'Joint accelerations', 'Time [s]', r'$\ddot{q}$ [rad/s${}^2$]');
 
 for j in range(7):
     qMax = Q_MAX[j];
@@ -248,7 +251,7 @@ for j in range(7):
             ax.plot([qMin, qMin], [-DQ_MAX[j], +DQ_MAX[j]], 'k--');
             ax.plot([qMax, qMax], [-DQ_MAX[j], +DQ_MAX[j]], 'k--');
             # plot state-space trajectory
-            ax.plot(q[j,:].A.squeeze(), dq[j,:].A.squeeze(), 'b-', linewidth=LW);
+            ax.plot(q[j,:].squeeze(), dq[j,:].squeeze(), 'b-', linewidth=LW);
             ax.xaxis.set_ticks([qMin, q[j,0], qMax]);
             ax.yaxis.set_ticks([-DQ_MAX[j], 0, DQ_MAX[j]]);
             ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));

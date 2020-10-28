@@ -33,9 +33,9 @@ class BaxterWrapper(RobotWrapper):
     def __init__(self, filename = MODELPATH[0]+'baxter_description/urdf/baxter.urdf'):
         RobotWrapper.initFromURDF(self, filename, MODELPATH);
         
-        self.Q_INIT = np.matlib.zeros((self.nq-NQ_OFFSET,1));
-        self.q_def = np.matlib.zeros((self.nq,1));
-        self.v_def = np.matlib.zeros((self.nv,1));
+        self.Q_INIT = np.zeros(self.nq-NQ_OFFSET);
+        self.q_def = np.zeros(self.nq);
+        self.v_def = np.zeros(self.nv);
         
 #        self.q0 = np.matrix( [
 #        0.0, 0.0, 0.648702, 0.0, 0.0 , 0.0, 1.0,                             # Free flyer 0-6
@@ -68,33 +68,39 @@ class BaxterWrapper(RobotWrapper):
 #        return RobotWrapper.nv-NV_OFFSET
 
     def mass(self,q):
-        self.q_def[NQ_OFFSET:] = q.reshape((self.nq-NQ_OFFSET,1));
+        self.q_def[NQ_OFFSET:] = q.reshape(self.nq-NQ_OFFSET);
         return RobotWrapper.mass(self, self.q_def)[NV_OFFSET:, NV_OFFSET:];
 
     def bias(self,q,v):
-        self.q_def[NQ_OFFSET:] = q.reshape((self.nq-NQ_OFFSET,1));
-        self.v_def[NV_OFFSET:] = v.reshape((self.nv-NV_OFFSET,1));
+        self.q_def[NQ_OFFSET:] = q.reshape(self.nq-NQ_OFFSET);
+        self.v_def[NV_OFFSET:] = v.reshape(self.nv-NV_OFFSET);
         return RobotWrapper.nle(self, self.q_def, self.v_def)[NV_OFFSET:];
 #    def gravity(self,q):
 #        return se3.rnea(self.model,self.data,q,self.v0,self.v0)
 
     def position(self,q,index):
-        self.q_def[NQ_OFFSET:] = q.reshape((self.nq-NQ_OFFSET,1));
+        self.q_def[NQ_OFFSET:] = q.reshape(self.nq-NQ_OFFSET);
         return RobotWrapper.placement(self, self.q_def, index);
         
     def velocity(self,q,v,index):
-        self.q_def[NQ_OFFSET:] = q.reshape((self.nq-NQ_OFFSET,1));
-        self.v_def[NV_OFFSET:] = v.reshape((self.nv-NV_OFFSET,1));
+        self.q_def[NQ_OFFSET:] = q.reshape(self.nq-NQ_OFFSET);
+        self.v_def[NV_OFFSET:] = v.reshape(self.nv-NV_OFFSET);
         return RobotWrapper.velocity(self, self.q_def, self.v_def, index);
         
     def jacobian(self,q,index):
-        self.q_def[NQ_OFFSET:] = q.reshape((self.nq-NQ_OFFSET,1));
+        self.q_def[NQ_OFFSET:] = q.reshape(self.nq-NQ_OFFSET);
         RobotWrapper.computeJointJacobian(self,self.q_def, index);
         return RobotWrapper.getJointJacobian(self, index)[:,NV_OFFSET:];
+    
+    def jacobian_2(self,q,index):
+        self.q_def[NQ_OFFSET:] = q.reshape(self.nq-NQ_OFFSET);
+        A = RobotWrapper.computeJointJacobian(self,self.q_def, index);
+        return A[:,NV_OFFSET:];
+    
         
     def dJdq(self, q, v, index):
-        self.q_def[NQ_OFFSET:] = q.reshape((self.nq-NQ_OFFSET,1));
-        self.v_def[NV_OFFSET:] = v.reshape((self.nv-NV_OFFSET,1));
+        self.q_def[NQ_OFFSET:] = q.reshape(self.nq-NQ_OFFSET);
+        self.v_def[NV_OFFSET:] = v.reshape(self.nv-NV_OFFSET);
         se3.forwardKinematics(self.model, self.data, self.q_def, self.v_def, self.v0);
         dJdq = self.data.a[index]; 
         dJdq.linear -= np.cross(dJdq.linear.squeeze(), dJdq.angular.squeeze());
@@ -103,7 +109,7 @@ class BaxterWrapper(RobotWrapper):
 
     # Display in gepetto-view the robot at configuration q, by placing all the bodies.
     def display(self,q, refresh=True): 
-        self.q_def[NQ_OFFSET:] = q.reshape((self.nq-NQ_OFFSET,1));
+        self.q_def[NQ_OFFSET:] = q.reshape(self.nq-NQ_OFFSET);
         return RobotWrapper.display(self, self.q_def); #, refresh);
         
     def play(self, q, dt, slow_down_factor=1, print_time_every=-1.0, robotName='hrp2'):

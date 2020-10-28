@@ -45,10 +45,10 @@ q2m = lambda q: se3.SE3( se3.Quaternion(q[6,0],q[3,0],q[4,0],q[5,0]).matrix(), q
 m2q = lambda M: np.concatenate([ M.translation,se3.Quaternion(M.rotation).coeffs() ])
 
 ''' PLOT-RELATED USER PARAMETERS '''
-LW = 3;     # line width
+LW = 4;     # line width
 PLOT_END_EFFECTOR_POS = True;
-PLOT_END_EFFECTOR_ACC = True;
-PLOT_JOINT_POS_VEL_ACC_TAU = True;
+PLOT_END_EFFECTOR_ACC = False;
+PLOT_JOINT_POS_VEL_ACC_TAU = False;
 Q_INTERVAL = 0.001; # the range of possible angles is sampled with this step for plotting
 PLAY_TRAJECTORY_ONLINE = False;
 PLAY_TRAJECTORY_AT_THE_END = True;
@@ -65,8 +65,8 @@ ACC_BOUNDS_TYPE = 'VIAB'; #'VIAB', 'NAIVE'
 CONSTRAIN_JOINT_TORQUES = False;
 END_EFFECTOR_NAME = 'left_w2'; #'left_w2'; left_wrist
 W_POSTURE = 1.0e-3; # 1e-3
-T = 10.0;    # total simulation time
-DT = 0.05;  # time step
+T = 4.0;    # total simulation time
+DT = 0.01;  # time step
 DT_SAFE =1.01*DT; # 2*DT;
 kp = 10; # 10
 kp_post = 10;
@@ -74,7 +74,7 @@ kd = 2*sqrt(kp);
 kd_post = 2*sqrt(kp_post);
 
 #x_des = np.array([[0.3, 0.30, 1.23, 0.15730328, 0.14751489, 0.48883663,  0.845301]]).T;
-x_des = np.array([[0.3, 0.3, 0.3, 0.15730328, 0.14751489, 0.48883663,  0.845301]]).T; #x_des = np.array([[0.5,  0.5 ,  1.5, -0.01354349,  0.0326968 , 0.38244455,  0.92330042]]).T;
+x_des = np.array([[0.3, 0.3, 1.23, 0.15730328, 0.14751489, 0.48883663,  0.845301]]).T; #x_des = np.array([[0.5,  0.5 ,  1.5, -0.01354349,  0.0326968 , 0.38244455,  0.92330042]]).T;
 #DDQ_MAX = 5.0*np.ones(14);
 DDQ_MAX = np.array([ 12.0, 12.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
                      12.0 ,2.0, 30.0, 30.0, 30.0, 30.0, 30.0]);
@@ -82,7 +82,7 @@ DDQ_MAX = np.array([ 12.0, 12.0, 30.0, 30.0, 30.0, 30.0, 30.0,
 #                     12.0 ,2.0, 33.0, 54.0, 358.0, 485.0, 26257.0]);
 #DDQ_MIN = np.array([-12.0, -2.0, -33.0, -54.0, -358.0, -485.0, -26257.0,    
 #                    -12.0, -2.0, -33.0, -54.0, -358.0, -485.0, -26257.0])
-E = DDQ_MAX[2]*0.0;
+E = DDQ_MAX[2]*0.01;
 q0 = np.array([ 0. , -0.0,  0. ,  0.0,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ]) ;# q0 = np.array([ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ])
 Q_POSTURE = np.array(0.5*(Q_MIN+Q_MAX));
 Q_POSTURE[8:] = 0.0;
@@ -94,9 +94,10 @@ M_des = q2m(x_des);
 robot = BaxterWrapper();
 robot.initViewer(loadModel=False)
 robot.loadViewerModel( "pinocchio"); #, MODELPATH)
-robot.viewer.gui.setCameraTransform('python-pinocchio',[3.5000033378601074, -5.8143712067249e-07, 6.62247678917538e-09, 0.49148452281951904, 0.5107253193855286, 0.4845828115940094, 0.5126227140426636]); #[3.5000033378601074, -7.042121978884097e-07, -5.638392508444667e-07, 0.5374045968055725, 0.5444704294204712, 0.4312002956867218, 0.47834569215774536])
+robot.viewer.gui.setCameraTransform('python-pinocchio',[4.000033378601074, -5.577442721005355e-07, -8.179827659660077e-07, 0.5338324904441833, 0.5607414841651917, 0.4348451793193817, 0.45989298820495605]); #[3.5000033378601074, -7.042121978884097e-07, -5.638392508444667e-07, 0.5374045968055725, 0.5444704294204712, 0.4312002956867218, 0.47834569215774536])
 robot.viewer.gui.setLightingMode('world/floor', 'OFF');
 robot.viewer.gui.setVisibility('world/floor', 'OFF');
+assert(robot.model.existFrame(END_EFFECTOR_NAME))
 #robot.viewer.gui.setBackgroundColor(robot.windowID, BACKGROUND_COLOR);
 #print robot.model
 
@@ -168,7 +169,7 @@ for t in range(NT-1):
             ddq_des = solver.solve(hess, grad, ddq_lb[:,t], ddq_ub[:,t], 1.0*MM, 1.0*b_lb, 1.0*b_ub);
         else:
             ddq_des = solver.solve(hess, grad, ddq_lb[:,t], ddq_ub[:,t]);
-        ddq[:,t] = ddq_des.reshape((NQ));
+        ddq[:,t] = ddq_des.reshape((NQ))+E;
     else:
         print("Error unrecognized control law:", CTRL_LAW);
 
@@ -188,9 +189,9 @@ for t in range(NT-1):
     
     ''' store data '''
     M = robot.position(q[:,t+1],IDEE);
-    J = robot.jacobian(q[:,t+1],IDEE);
-    print(robot.computeJointJacobian(q[:,t+1],IDEE));
-    print(robot.getJointJacobian(IDEE));
+    J = robot.jacobian_2(q[:,t+1],IDEE);
+    #print(robot.computeJointJacobian(q[:,t+1],IDEE));
+    #print(robot.getJointJacobian(IDEE));
     dJdq = robot.dJdq(q[:,t+1], dq[:,t+1], IDEE);
     x[:,t+1] = m2q(M);
     dx[:,t+1] = J@dq[:,t+1];
