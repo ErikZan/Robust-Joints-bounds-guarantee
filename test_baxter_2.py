@@ -19,7 +19,7 @@ import matplotlib.ticker as ticker
 import matplotlib as mpl
 
 from qp_solver import qpSolver
-from acc_bounds_util_2e import computeMultiAccLimits_2
+from acc_bounds_util_2e import computeMultiAccLimits_3
 from baxter_wrapper import BaxterWrapper, Q_MIN, Q_MAX, DQ_MAX, TAU_MAX, MODELPATH
                 
 def plot_bounded_joint_quantity(time, x, X_MIN, X_MAX, name, xlabel='', ylabel=''):
@@ -47,14 +47,14 @@ m2q = lambda M: np.concatenate([ M.translation,se3.Quaternion(M.rotation).coeffs
 ''' PLOT-RELATED USER PARAMETERS '''
 LW = 4;     # line width
 PLOT_END_EFFECTOR_POS = True;
-PLOT_END_EFFECTOR_ACC = False;
-PLOT_JOINT_POS_VEL_ACC_TAU = False;
+PLOT_END_EFFECTOR_ACC = True;
+PLOT_JOINT_POS_VEL_ACC_TAU = True;
 Q_INTERVAL = 0.001; # the range of possible angles is sampled with this step for plotting
 PLAY_TRAJECTORY_ONLINE = False;
 PLAY_TRAJECTORY_AT_THE_END = True;
 CAPTURE_IMAGES = False;
-plut.SAVE_FIGURES = False;
-plut.FIGURE_PATH = '/home/erikz/Download/';
+plut.SAVE_FIGURES = True;
+plut.FIGURE_PATH = '/home/erik/Downloads/';
 IMAGES_FILE_NAME = 'baxter_viab_dt_2x';
 BACKGROUND_COLOR = (1.0, 1.0, 1.0, 1.0);
 ''' END OF PLOT-RELATED USER PARAMETERS '''
@@ -62,7 +62,7 @@ BACKGROUND_COLOR = (1.0, 1.0, 1.0, 1.0);
 ''' CONTROLLER USER PARAMETERS '''
 CTRL_LAW = 'IK_QP'; #'IK_QP', 'IK'
 ACC_BOUNDS_TYPE = 'VIAB'; #'VIAB', 'NAIVE'
-CONSTRAIN_JOINT_TORQUES = False;
+CONSTRAIN_JOINT_TORQUES = True;
 END_EFFECTOR_NAME = 'left_w2'; #'left_w2'; left_wrist
 W_POSTURE = 1.0e-3; # 1e-3
 T = 4.0;    # total simulation time
@@ -74,15 +74,16 @@ kd = 2*sqrt(kp);
 kd_post = 2*sqrt(kp_post);
 
 #x_des = np.array([[0.3, 0.30, 1.23, 0.15730328, 0.14751489, 0.48883663,  0.845301]]).T;
-x_des = np.array([[0.3, 0.3, 1.23, 0.15730328, 0.14751489, 0.48883663,  0.845301]]).T; #x_des = np.array([[0.5,  0.5 ,  1.5, -0.01354349,  0.0326968 , 0.38244455,  0.92330042]]).T;
-#DDQ_MAX = 5.0*np.ones(14);
+x_des = np.array([[0.5, 0.5, 1.1, 0.15730328, 0.14751489, 0.48883663,  0.845301]]).T; #x_des = np.array([[0.5,  0.5 ,  1.5, -0.01354349,  0.0326968 , 0.38244455,  0.92330042]]).T;
+#DDQ_MAX = 12.0*np.ones(14);
 DDQ_MAX = np.array([ 12.0, 12.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
                      12.0 ,2.0, 30.0, 30.0, 30.0, 30.0, 30.0]);
 #DDQ_MAX = np.array([ 12.0, 2.0, 33.0, 54.0, 358.0, 485.0, 26257.0,     
 #                     12.0 ,2.0, 33.0, 54.0, 358.0, 485.0, 26257.0]);
 #DDQ_MIN = np.array([-12.0, -2.0, -33.0, -54.0, -358.0, -485.0, -26257.0,    
 #                    -12.0, -2.0, -33.0, -54.0, -358.0, -485.0, -26257.0])
-E = DDQ_MAX[2]*0.01;
+E = np.array([ 12.0, 12.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
+                     .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.00 ; # DDQ_MAX[2]*0.3;
 q0 = np.array([ 0. , -0.0,  0. ,  0.0,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ]) ;# q0 = np.array([ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ])
 Q_POSTURE = np.array(0.5*(Q_MIN+Q_MAX));
 Q_POSTURE[8:] = 0.0;
@@ -148,10 +149,10 @@ for t in range(NT-1):
         GOAL_REACHED = True;
         
     if(CTRL_LAW=='IK'):
-        ddq[:,t] = pinv(J, W_POSTURE)*(ddx_des[:,t] - dJdq.vector);                
+       ddq[:,t] = pinv(J, W_POSTURE)@(ddx_des[:,t] - dJdq.vector);     # ddq[:,t] = pinv(J, W_POSTURE)*(ddx_des[:,t] - dJdq.vector);              
     elif(CTRL_LAW=='IK_QP'):
         if(ACC_BOUNDS_TYPE=='VIAB'):
-            (ddq_lb[:,t], ddq_ub[:,t]) = computeMultiAccLimits_2(q[:,t], dq[:,t], Q_MIN, Q_MAX, DQ_MAX, DDQ_MAX, DT_SAFE,E);
+            (ddq_lb[:,t], ddq_ub[:,t]) = computeMultiAccLimits_3(q[:,t], dq[:,t], Q_MIN, Q_MAX, DQ_MAX, DDQ_MAX, DT_SAFE,E);
         elif(ACC_BOUNDS_TYPE=='NAIVE'):
             for j in range(NQ):
                 ddq_ub[j,t] = min( DDQ_MAX[j], ( DQ_MAX[j]-dq[j,t])/DT_SAFE, 2.0*(Q_MAX[j]-q[j,t]-DT_SAFE*dq[j,t])/(DT_SAFE**2));

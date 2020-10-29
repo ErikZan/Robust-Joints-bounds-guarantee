@@ -12,6 +12,11 @@ MODELPATH = ['/home/erik/Downloads/baxter_common-master/',]
 
 NQ_OFFSET = 1
 NV_OFFSET = 1
+"""
+Q_MIN = -2.0*np.ones(14);
+Q_MAX = 2.0*np.ones(14);
+DQ_MAX = -2.0*np.ones(14);
+"""
 
 Q_MIN   = np.array([-1.7016, -2.147, -3.0541, -0.05, -3.059, -1.5707, -3.059,
                     -1.7016, -2.147, -3.0541, -0.05, -3.059, -1.5707, -3.059]).T;
@@ -19,6 +24,7 @@ Q_MAX   = np.array([ 1.7016,  1.047,  3.0541,  2.618, 3.059,  2.094,   3.059,
                      1.7016,  1.047,  3.0541,  2.618, 3.059,  2.094,   3.059]).T;
 DQ_MAX  = np.array([ 2.0,     2.0,    2.0,     2.0,   4.0,    4.0,     4.0,
                      2.0,     2.0,    2.0,     2.0,   4.0,    4.0,     4.0]).T;
+                     
 TAU_MAX = np.array([50.0,    60.0,   50.0,    50.0,  15.0,   15.0,    15.0,
                     50.0,    60.0,   50.0,    50.0,  15.0,   15.0,    15.0]).T;
 # I increased TAU_MAX for joint 1 from 50 Nm to 60 Nm because sometimes just to 
@@ -127,7 +133,7 @@ class BaxterWrapper(RobotWrapper):
             if(print_time_every>0.0 and t*dt%print_time_every==0.0):
                 print("%.1f"%(t*dt));
                 
-    def startCapture(self, filename, extension='jpeg', path='/home/erikz/Download/'):
+    def startCapture(self, filename, extension='jpeg', path='/home/erik/Downloads/'):
         if(not os.path.exists(path)):
             os.makedirs(path);
         self.viewer.gui.startCapture(self.windowID, path+filename, extension);
