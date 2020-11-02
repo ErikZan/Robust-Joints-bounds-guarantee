@@ -7,9 +7,9 @@ Created on Tue Jun 14 11:52:00 2016
 
 import pinocchio as se3
 from pinocchio.utils import *
-
+import os
 import numpy.matlib
-from numpy.linalg import pinv
+from numpy.linalg import pinv,inv
 from math import sqrt
 from time import sleep
 
@@ -17,7 +17,7 @@ import plot_utils as plut
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib as mpl
-
+ 
 from qp_solver import qpSolver
 from acc_bounds_util_2e import computeMultiAccLimits_3
 from baxter_wrapper import BaxterWrapper, Q_MIN, Q_MAX, DQ_MAX, TAU_MAX, MODELPATH
@@ -47,13 +47,13 @@ m2q = lambda M: np.concatenate([ M.translation,se3.Quaternion(M.rotation).coeffs
 ''' PLOT-RELATED USER PARAMETERS '''
 LW = 4;     # line width
 PLOT_END_EFFECTOR_POS = True;
-PLOT_END_EFFECTOR_ACC = True;
-PLOT_JOINT_POS_VEL_ACC_TAU = True;
+PLOT_END_EFFECTOR_ACC = False;
+PLOT_JOINT_POS_VEL_ACC_TAU = 0;
 Q_INTERVAL = 0.001; # the range of possible angles is sampled with this step for plotting
 PLAY_TRAJECTORY_ONLINE = False;
 PLAY_TRAJECTORY_AT_THE_END = True;
 CAPTURE_IMAGES = False;
-plut.SAVE_FIGURES = True;
+plut.SAVE_FIGURES = 0;
 plut.FIGURE_PATH = '/home/erik/Downloads/';
 IMAGES_FILE_NAME = 'baxter_viab_dt_2x';
 BACKGROUND_COLOR = (1.0, 1.0, 1.0, 1.0);
@@ -62,11 +62,11 @@ BACKGROUND_COLOR = (1.0, 1.0, 1.0, 1.0);
 ''' CONTROLLER USER PARAMETERS '''
 CTRL_LAW = 'IK_QP'; #'IK_QP', 'IK'
 ACC_BOUNDS_TYPE = 'VIAB'; #'VIAB', 'NAIVE'
-CONSTRAIN_JOINT_TORQUES = True;
+CONSTRAIN_JOINT_TORQUES = False;
 END_EFFECTOR_NAME = 'left_w2'; #'left_w2'; left_wrist
 W_POSTURE = 1.0e-3; # 1e-3
 T = 4.0;    # total simulation time
-DT = 0.01;  # time step
+DT = 0.05;  # time step
 DT_SAFE =1.01*DT; # 2*DT;
 kp = 10; # 10
 kp_post = 10;
@@ -74,7 +74,7 @@ kd = 2*sqrt(kp);
 kd_post = 2*sqrt(kp_post);
 
 #x_des = np.array([[0.3, 0.30, 1.23, 0.15730328, 0.14751489, 0.48883663,  0.845301]]).T;
-x_des = np.array([[0.5, 0.5, 1.1, 0.15730328, 0.14751489, 0.48883663,  0.845301]]).T; #x_des = np.array([[0.5,  0.5 ,  1.5, -0.01354349,  0.0326968 , 0.38244455,  0.92330042]]).T;
+x_des = np.array([[0.3, 0.3, 1.23, 0.15730328, 0.14751489, 0.48883663,  0.845301]]).T; #x_des = np.array([[0.5,  0.5 ,  1.5, -0.01354349,  0.0326968 , 0.38244455,  0.92330042]]).T;
 #DDQ_MAX = 12.0*np.ones(14);
 DDQ_MAX = np.array([ 12.0, 12.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
                      12.0 ,2.0, 30.0, 30.0, 30.0, 30.0, 30.0]);
@@ -83,7 +83,7 @@ DDQ_MAX = np.array([ 12.0, 12.0, 30.0, 30.0, 30.0, 30.0, 30.0,
 #DDQ_MIN = np.array([-12.0, -2.0, -33.0, -54.0, -358.0, -485.0, -26257.0,    
 #                    -12.0, -2.0, -33.0, -54.0, -358.0, -485.0, -26257.0])
 E = np.array([ 12.0, 12.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
-                     .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.00 ; # DDQ_MAX[2]*0.3;
+                     .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.0 ; # DDQ_MAX[2]*0.3;
 q0 = np.array([ 0. , -0.0,  0. ,  0.0,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ]) ;# q0 = np.array([ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ])
 Q_POSTURE = np.array(0.5*(Q_MIN+Q_MAX));
 Q_POSTURE[8:] = 0.0;
@@ -149,7 +149,8 @@ for t in range(NT-1):
         GOAL_REACHED = True;
         
     if(CTRL_LAW=='IK'):
-       ddq[:,t] = pinv(J, W_POSTURE)@(ddx_des[:,t] - dJdq.vector);     # ddq[:,t] = pinv(J, W_POSTURE)*(ddx_des[:,t] - dJdq.vector);              
+       #ddq[:,t] = pinv(J, W_POSTURE)@(ddx_des[:,t] - dJdq.vector);     # ddq[:,t] = pinv(J, W_POSTURE)*(ddx_des[:,t] - dJdq.vector);     
+       ddq[:,t] = J.T@inv(J@J.T+W_POSTURE*np.identity(J.shape[0]))@(ddx_des[:,t] - dJdq.vector)- kd_post*dq[:,t];    
     elif(CTRL_LAW=='IK_QP'):
         if(ACC_BOUNDS_TYPE=='VIAB'):
             (ddq_lb[:,t], ddq_ub[:,t]) = computeMultiAccLimits_3(q[:,t], dq[:,t], Q_MIN, Q_MAX, DQ_MAX, DDQ_MAX, DT_SAFE,E);
@@ -170,7 +171,7 @@ for t in range(NT-1):
             ddq_des = solver.solve(hess, grad, ddq_lb[:,t], ddq_ub[:,t], 1.0*MM, 1.0*b_lb, 1.0*b_ub);
         else:
             ddq_des = solver.solve(hess, grad, ddq_lb[:,t], ddq_ub[:,t]);
-        ddq[:,t] = ddq_des.reshape((NQ))+E;
+        ddq[:,t] = ddq_des+E;
     else:
         print("Error unrecognized control law:", CTRL_LAW);
 
@@ -272,9 +273,13 @@ for j in range(7):
         f, ax = plt.subplots(3, 2, sharex=True);
         ax = ax.reshape(6);
         plut.movePlotSpines(ax[5], [0, 0]);
-        ax[5].plot(time[:-1], ddq[j,:], linewidth=LW); # ax[5].plot(time[:-1], ddq[j,:].A.squeeze(), linewidth=LW);
-        ax[5].plot(time[:-1], ddq_lb[j,:], 'r--');
-        ax[5].plot(time[:-1], ddq_ub[j,:], 'r--');
+        """ ax[5].plot(time[:-1], ddq[j,:], linewidth=LW); # ax[5].plot(time[:-1], ddq[j,:].A.squeeze(), linewidth=LW);
+        ax[5].plot(time[:-1], ddq_lb[j,:], 'o--');
+        ax[5].plot(time[:-1], ddq_ub[j,:], 'g--'); """
+        ax[5].step(time[:-1], ddq[j,:], linewidth=LW); # ax[5].plot(time[:-1], ddq[j,:].A.squeeze(), linewidth=LW);
+        ax[5].step(time[:-1], ddq_lb[j,:], 'o--');
+        ax[5].step(time[:-1], ddq_ub[j,:], 'g--');
+        #ax[5].step(time[:-1], (ddq_lb[j,:]),color='yellow', linewidth=LW);
         ax[5].set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
         ax[5].set_xlabel('Time [s]');
         
@@ -316,7 +321,7 @@ for j in range(7):
         ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.2f'));
         ax.set_xlim([np.min(q[j,:]) -0.05*qHalf, np.max(q[j,:])+0.05*qHalf]);
         ax.set_ylim([np.min(dq[j,:])-0.05*DQ_MAX[j], np.max(dq[j,:])+0.05*DQ_MAX[j]]);
-#        ax.set_title('Joint '+str(j));
+        ax.set_title('Joint '+str(j));
         ax.set_xlabel(r'$q$ [rad]');
         ax.set_ylabel(r'$\dot{q}$ [rad/s]');
         

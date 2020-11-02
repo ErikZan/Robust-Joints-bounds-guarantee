@@ -486,20 +486,20 @@ def computeAccLimits_3(q, dq, qMin, qMax, dqMax, ddqMax, dt,E, verbose=True, ddq
     
     # Acceleration limits imposed by position bounds
     (ddqLB[0], ddqUB[0]) = computeAccLimitsFromPosLimits_3(q, dq, qMin, qMax, ddqMax, dt,E, verbose);
-    ddqLB[0]+=E.any();
-    ddqUB[0]-=E.any();
+    ddqLB[0]+=E;
+    ddqUB[0]-=E;
     
     # Acceleration limits imposed by velocity bounds
     # dq[t+1] = dq + dt*ddq < dqMax
     # ddqMax = (dqMax-dq)/dt
     # ddqMin = (dqMin-dq)/dt = (-dqMax-dq)/dt
-    ddqLB[1] = (-dqMax-dq)/dt+E.any();
-    ddqUB[1] = (dqMax-dq)/dt-E.any();
+    ddqLB[1] = (-dqMax-dq)/dt+E;
+    ddqUB[1] = (dqMax-dq)/dt-E;
     
     # Acceleration limits imposed by viability
     (ddqLB[2], ddqUB[2]) = computeAccLimitsFromViability_3(q, dq, qMin, qMax, ddqStop, dt,E, verbose);
-    ddqLB[2]+=E.any();
-    ddqUB[2]-=E.any();
+    ddqLB[2]+=E;
+    ddqUB[2]-=E;
     
     # Acceleration limits
     ddqLB[3] = -ddqMax;
@@ -531,5 +531,5 @@ def computeMultiAccLimits_3(q, dq, qMin, qMax, dqMax, ddqMax, dt,E, verbose=True
     if(ddqStop==None):
         ddqStop = ddqMax;
     for i in range(len(q)):
-        (ddqLB[i], ddqUB[i]) = computeAccLimits_3(q[i], dq[i], qMin[i], qMax[i], dqMax[i], ddqMax[i], dt,E, verbose, ddqStop[i]);
+        (ddqLB[i], ddqUB[i]) = computeAccLimits_3(q[i], dq[i], qMin[i], qMax[i], dqMax[i], ddqMax[i], dt,E[i], verbose, ddqStop[i]);
     return (ddqLB, ddqUB);

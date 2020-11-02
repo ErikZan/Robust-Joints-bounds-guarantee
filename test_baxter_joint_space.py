@@ -19,7 +19,7 @@ import matplotlib.ticker as ticker
 import matplotlib as mpl
 
 from qp_solver import qpSolver
-from acc_bounds_util import computeMultiAccLimits
+from acc_bounds_util_2e import computeMultiAccLimits_3
 from baxter_wrapper import BaxterWrapper, Q_MIN, Q_MAX, DQ_MAX, TAU_MAX, MODELPATH
                 
 def plot_bounded_joint_quantity(time, x, X_MIN, X_MAX, name, xlabel='', ylabel=''):
@@ -66,7 +66,7 @@ T = 4.0;    # total simulation time
 DT = 0.01;  # time step
 #DT_SAFE = np.array([2, 5, 20])*DT;
 DT_SAFE = np.array([1])*DT;
-kp = 1000;
+kp = 1000; #1000
 kd = 2*sqrt(kp);
 DDQ_MAX = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
                      12.0 ,2.0, 30.0, 30.0, 30.0, 30.0, 30.0]);
@@ -74,6 +74,8 @@ q0 = np.array([[ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. 
 Q_DES = np.array(0.5*(Q_MIN+Q_MAX)).T;
 Q_DES[0] = Q_MAX[0] + 0.5;
 Q_DES[8:] = 0.0;
+E = np.array([ 12.0, 12.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
+                     .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.2 ; # DDQ_MAX[2]*0.3;
 ''' END OF CONTROLLER USER PARAMETERS '''
 
 if(len(DT_SAFE)==1):
@@ -113,7 +115,7 @@ for nt in range(NDT):
         ddq_des[:,t,nt] = kp*(Q_DES - q[:,t,nt]) - kd*dq[:,t,nt];
         
         if(ACC_BOUNDS_TYPE=='VIAB'):
-            (ddq_lb[:,t,nt], ddq_ub[:,t,nt]) = computeMultiAccLimits(q[:,t,nt], dq[:,t,nt], Q_MIN, Q_MAX, DQ_MAX, DDQ_MAX, DT_SAFE[nt]);
+            (ddq_lb[:,t,nt], ddq_ub[:,t,nt]) = computeMultiAccLimits_3(q[:,t,nt], dq[:,t,nt], Q_MIN, Q_MAX, DQ_MAX, DDQ_MAX, DT_SAFE[nt],E);
         elif(ACC_BOUNDS_TYPE=='NAIVE'):
             for j in range(NQ):
                 ddq_ub[j,t,nt] = min( DDQ_MAX[j], ( DQ_MAX[j]-dq[j,t,nt])/DT_SAFE[nt], 2.0*(Q_MAX[j]-q[j,t,nt]-DT_SAFE[nt]*dq[j,t,nt])/(DT_SAFE[nt]**2));
@@ -130,7 +132,7 @@ for nt in range(NDT):
                 ddq[j,t,nt] = ddq_lb[j,t,nt];
             else:
                 ddq[j,t,nt] = ddq_des[j,t,nt];
-    
+                
         ''' check position bounds '''  
         for j in range(NQ):
             if(pos_bound_viol[j]==False):
@@ -142,8 +144,16 @@ for nt in range(NDT):
                     pos_bound_viol[j]=True;
             elif(q[j,t,nt] <= Q_MAX[j] and q[j,t,nt]>=Q_MIN[j]):
                 pos_bound_viol[j]=False;
-        
+                
+        '''Check maximum accelerations'''
+        for j in range(NQ):
+            if ddq[j,t,nt]>=DDQ_MAX[j]:
+                ddq[j,t,nt]=DDQ_MAX[j]
+            if ddq[j,t,nt]<=-DDQ_MAX[j]:
+                ddq[j,t,nt]=-DDQ_MAX[j]
+                
         ''' Numerical Integration '''
+        ddq[:,t,nt]+=E;
         q[:,t+1,nt] = q[:,t,nt] + DT*dq[:,t,nt] + 0.5*DT*DT*ddq[:,t,nt];
         dq[:,t+1,nt] = dq[:,t,nt] + DT*ddq[:,t,nt];
         if(PLAY_TRAJECTORY_ONLINE):
@@ -224,11 +234,11 @@ for j in range(7):
         for nt in range(NDT):
             ax_pos.plot(time, q[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt, label=r'$\delta t=$'+str(int(DT_SAFE[nt]/DT))+'x');
             ax_vel.plot(time, dq[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt);
-            ax_acc.plot(time[:-1], ddq[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt);
-#            ax_acc.plot(time[:-1], ddq_des[j,:].A.squeeze(), 'b:', linewidth=LW);
-#            if(NDT==1):
-#                ax_acc.plot(time[:-1], ddq_lb[j,:,nt], 'r--');
-#                ax_acc.plot(time[:-1], ddq_ub[j,:,nt], 'r--');
+            ax_acc.step(time[:-1], ddq[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt);
+            ax_acc.step(time[:-1], ddq_des[j,:].squeeze(), 'b:', linewidth=LW);
+            if(NDT==1):
+                ax_acc.step(time[:-1], ddq_lb[j,:,nt], 'o--');
+                ax_acc.step(time[:-1], ddq_ub[j,:,nt], 'g--');
         
         if(NDT>1):
             leg = ax_pos.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=NDT, mode="expand", borderaxespad=0.)
@@ -258,7 +268,7 @@ for j in range(7):
             ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.2f'));
             ax.set_xlim([np.min(q[j,:]) -0.05*qHalf, np.max(q[j,:])+0.05*qHalf]);
             ax.set_ylim([np.min(dq[j,:])-0.05*DQ_MAX[j], np.max(dq[j,:])+0.05*DQ_MAX[j]]);
-    #        ax.set_title('Joint '+str(j));
+            ax.set_title('Joint '+str(j));
             ax.set_xlabel(r'$q$ [rad]');
             ax.set_ylabel(r'$\dot{q}$ [rad/s]');
         

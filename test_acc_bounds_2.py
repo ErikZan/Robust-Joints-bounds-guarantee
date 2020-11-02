@@ -58,8 +58,8 @@ LW = 2;
 EPS = 1e-10;
 
 # MAX and MIN are the only supported 
-TEST_MAX_ACC = True;    # if true select always the maximum acceleration possible 
-TEST_MIN_ACC = False;    # if true select always the minimum acceleration possible 
+TEST_MAX_ACC = 1;    # if true select always the maximum acceleration possible 
+TEST_MIN_ACC = 0;    # if true select always the minimum acceleration possible 
 TEST_MED_ACC = False;    # if true select always the average of max and min acc
 TEST_MED_POS_ACC = True;    # if true select always the average of max and min acc imposed by pos bounds (saturated if necessary)
 PLOT_STATE_SPACE = True;
@@ -70,14 +70,14 @@ PLOT_SIMULATION_RESULTS = True;
 TRAJECTORY = True;
 qMax    = 2.0;
 qMin    = -2.0;
-MAX_VEL = 5.0;
+MAX_VEL = 1.0;
 MAX_ACC = 10.0;
 q0      =  0.0;
 dq0     =  0.0;
 N_TESTS = 50;
-DT = 0.10;
+DT = 0.1;
 VIABILITY_MARGIN = 1e10; # minimum margin to leave between ddq and its bounds found through viability
-E = 0.3* MAX_ACC;
+E = 0.1* MAX_ACC;
 # add fraction and trigged
 
 ''' State in which acc bounds from pos are stricter than acc bounds from viability '''
@@ -114,8 +114,9 @@ else:
 print("")
     
     
-if(MAX_VEL/MAX_ACC < DT):
-    print("INFO Pay attention because dq_max/ddq_max (%f) < dt"%(MAX_VEL/MAX_ACC))
+if(MAX_VEL/(MAX_ACC+E) < DT):
+    print("INFO Pay attention because dq_max/(ddq_max+e) (%f) < dt => leads to inconsitency pos-vel bounds"%(MAX_VEL/MAX_ACC))
+    print("With currrent pos-vel-acc bounds maximum percentual error on MAX_ACC can be %f"%((MAX_VEL/DT-MAX_ACC)/MAX_ACC))
 
 q   = np.zeros(N_TESTS+1);
 dq  = np.zeros(N_TESTS+1);
@@ -208,9 +209,9 @@ for i in range(N_TESTS):
         ddq[i] = -MAX_ACC;
 
     if(TEST_MAX_ACC):     # if true select always the maximum acceleration possible 
-        ddq[i]+=E # *random(1);
+        ddq[i]+=E  #*random(1);
     elif(TEST_MIN_ACC):
-        ddq[i]-=E # *random(1); 
+        ddq[i]-=E  #*random(1); 
 
     dq[i+1] = dq[i] + DT*ddq[i]                     #+ error_trigger*(DT*MAX_ACC*fraction*random(1) - DT*MAX_ACC*fraction*random(1)); # adding error;
     q[i+1]  = q[i] + DT*dq[i] + 0.5*(DT**2)*ddq[i]  #+ error_trigger*(0.5*DT**2*MAX_ACC*fraction*random(1) - 0.5*DT**2*MAX_ACC*fraction*random(1)); # adding error;
@@ -492,7 +493,9 @@ if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
     
     ax[2].step(t, np.hstack((ddq[0], ddq)), linewidth=LW);
     ax[2].plot([0, t[-1]], [MAX_ACC, MAX_ACC], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
-    ax[2].plot([0, t[-1]], [-MAX_ACC, -MAX_ACC], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
+    ax[2].plot([0, t[-1]], [-MAX_ACC, -MAX_ACC], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);# 
+    ax[2].step(t, np.hstack((ddqLB[0], ddqLB)),color='green', linewidth=LW);
+    ax[2].step(t, np.hstack((ddqUB[0], ddqUB)),color='orange', linewidth=LW)
     #ax[2].plot(t[:-1], ddqLB, "--", color='red', alpha=plut.LINE_ALPHA);
     #ax[2].plot(t[:-1], ddqUB, "--", color='red', alpha=plut.LINE_ALPHA);
     #ax[2].set_title('acceleration');

@@ -22,17 +22,17 @@ from acc_bounds_util_2e import computeAccLimitsFromPosLimits_2
 plut.SAVE_FIGURES = True; 
 EPS = 1e-10;
 
-qMax    = 0.5;
+'''qMax    = 0.5;
 qMin    = -0.5;
 MAX_VEL = 2.0;
-MAX_ACC = 5.0;
+MAX_ACC = 5.0;'''
 DT = 0.1;
 
 qMax    = 2.0;
 qMin    = -2.0;
-MAX_VEL = 5.0;
+MAX_VEL = 1.0;
 MAX_ACC = 10.0;
-E = 0.99*MAX_ACC;  
+E = 0.3*MAX_ACC;  
 
 DT_SAFE = 1.01*DT;
 Q_INTERVAL = 0.002; # for plotting the range of possible angles is sampled with this step
