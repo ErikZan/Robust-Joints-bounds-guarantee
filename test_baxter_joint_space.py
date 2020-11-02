@@ -77,6 +77,7 @@ Q_DES[8:] = 0.0;
 E = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
                      .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.31; # DDQ_MAX[2]*0.3;
 ''' END OF CONTROLLER USER PARAMETERS '''
+# check if bounds are OK
 isBoundsTooStrict_Multi(Q_MIN,Q_MAX,DQ_MAX,DDQ_MAX,DT,E)   
 if(len(DT_SAFE)==1):
     line_styles[0] = 'b-';

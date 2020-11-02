@@ -19,7 +19,7 @@ import matplotlib.ticker as ticker
 import matplotlib as mpl
  
 from qp_solver import qpSolver
-from acc_bounds_util_2e import computeMultiAccLimits_3
+from acc_bounds_util_2e import computeMultiAccLimits_3,isBoundsTooStrict_Multi
 from baxter_wrapper import BaxterWrapper, Q_MIN, Q_MAX, DQ_MAX, TAU_MAX, MODELPATH
                 
 def plot_bounded_joint_quantity(time, x, X_MIN, X_MAX, name, xlabel='', ylabel=''):
@@ -85,6 +85,8 @@ DDQ_MAX = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,
 E = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
                      .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.2 ; # DDQ_MAX[2]*0.3;
 q0 = np.array([ 0. , -0.0,  0. ,  0.0,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ]) ;# q0 = np.array([ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ])
+# check if bounds are OK
+isBoundsTooStrict_Multi(Q_MIN,Q_MAX,DQ_MAX,DDQ_MAX,DT,E)
 Q_POSTURE = np.array(0.5*(Q_MIN+Q_MAX));
 Q_POSTURE[8:] = 0.0;
 ''' END OF CONTROLLER USER PARAMETERS '''
