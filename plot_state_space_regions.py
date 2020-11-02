@@ -14,7 +14,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import brewer2mpl
-from acc_bounds_util_2e import isStateViable_2
+from acc_bounds_util_2e import isStateViable_2,isBoundsTooStrict
 from acc_bounds_util_2e import computeAccLimits_2
 from acc_bounds_util_2e import computeAccLimitsFromViability_2
 from acc_bounds_util_2e import computeAccLimitsFromPosLimits_2
@@ -30,9 +30,10 @@ DT = 0.1;
 
 qMax    = 2.0;
 qMin    = -2.0;
-MAX_VEL = 1.0;
+MAX_VEL = 1.3;
 MAX_ACC = 10.0;
 E = 0.3*MAX_ACC;  
+isBoundsTooStrict(qMin,qMax,MAX_VEL,MAX_ACC,DT,E)
 
 DT_SAFE = 1.01*DT;
 Q_INTERVAL = 0.002; # for plotting the range of possible angles is sampled with this step

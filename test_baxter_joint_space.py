@@ -19,7 +19,7 @@ import matplotlib.ticker as ticker
 import matplotlib as mpl
 
 from qp_solver import qpSolver
-from acc_bounds_util_2e import computeMultiAccLimits_3
+from acc_bounds_util_2e import computeMultiAccLimits_3,isBoundsTooStrict_Multi
 from baxter_wrapper import BaxterWrapper, Q_MIN, Q_MAX, DQ_MAX, TAU_MAX, MODELPATH
                 
 def plot_bounded_joint_quantity(time, x, X_MIN, X_MAX, name, xlabel='', ylabel=''):
@@ -62,8 +62,8 @@ IMAGES_FILE_NAME = 'baxter_viab_dt_2x';
 
 ''' CONTROLLER USER PARAMETERS '''
 ACC_BOUNDS_TYPE = 'VIAB'; #'VIAB', 'NAIVE'
-T = 4.0;    # total simulation time
-DT = 0.01;  # time step
+T = 6.0;    # total simulation time
+DT = 0.05;  # time step
 #DT_SAFE = np.array([2, 5, 20])*DT;
 DT_SAFE = np.array([1])*DT;
 kp = 1000; #1000
@@ -74,10 +74,10 @@ q0 = np.array([[ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. 
 Q_DES = np.array(0.5*(Q_MIN+Q_MAX)).T;
 Q_DES[0] = Q_MAX[0] + 0.5;
 Q_DES[8:] = 0.0;
-E = np.array([ 12.0, 12.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
-                     .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.2 ; # DDQ_MAX[2]*0.3;
+E = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
+                     .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.31; # DDQ_MAX[2]*0.3;
 ''' END OF CONTROLLER USER PARAMETERS '''
-
+isBoundsTooStrict_Multi(Q_MIN,Q_MAX,DQ_MAX,DDQ_MAX,DT,E)   
 if(len(DT_SAFE)==1):
     line_styles[0] = 'b-';
 
@@ -147,10 +147,10 @@ for nt in range(NDT):
                 
         '''Check maximum accelerations'''
         for j in range(NQ):
-            if ddq[j,t,nt]>=DDQ_MAX[j]:
-                ddq[j,t,nt]=DDQ_MAX[j]
-            if ddq[j,t,nt]<=-DDQ_MAX[j]:
-                ddq[j,t,nt]=-DDQ_MAX[j]
+            if ddq[j,t,nt] > DDQ_MAX[j]:
+                ddq[j,t,nt] = DDQ_MAX[j];
+            if ddq[j,t,nt] < -DDQ_MAX[j]:
+                ddq[j,t,nt] = -DDQ_MAX[j];
                 
         ''' Numerical Integration '''
         ddq[:,t,nt]+=E;

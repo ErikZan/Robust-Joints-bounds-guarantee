@@ -359,6 +359,16 @@ def computeMultiAccLimits_2(q, dq, qMin, qMax, dqMax, ddqMax, dt,E, verbose=True
         (ddqLB[i], ddqUB[i]) = computeAccLimits_2(q[i], dq[i], qMin[i], qMax[i], dqMax[i], ddqMax[i], dt,E, verbose, ddqStop[i]);
     return (ddqLB, ddqUB);
 
+def isBoundsTooStrict(qMin,qMax,dqMax,ddqMax,dt,E):
+    print("\n #### SANITY CHECK #### \n")
+    if (qMax-qMin<dt*dt*(ddqMax+E)):
+        print("Position bounds are too strict! with this acceleration and error you must have at least q= (%f , %f) \n"%(-(dt*dt*(ddqMax+E))/2, (dt*dt*(ddqMax+E))/2))
+        exit()
+    elif (dqMax<dt*(ddqMax+E)):
+        print("Velocity bounds are too strict! with this acceleration and error you must have at least dq= %f \n"%(dt*(ddqMax+E)))
+        exit()
+    else:
+        print("Bounds are all rights. Good to go \n")
 
 ################################################################################################
 ################################################################################################
@@ -376,12 +386,12 @@ def isStateViable_3(q, dq, qMin, qMax, dqMax, ddqMax,E, verbose=False):
         if(verbose):
             print("State (%f,%f) not viable because |dq|>dqMax" % (q,dq));
         return abs(dq)-dqMax;
-    dqMaxViab =   np.sqrt(max(0,2*(ddqMax-E.any())*(qMax-q))); # dqMaxViab =   np.sqrt(max(0,2*(ddqMax-E)*(qMax-q)));
+    dqMaxViab =   np.sqrt(max(0,2*(ddqMax-E)*(qMax-q))); # dqMaxViab =   np.sqrt(max(0,2*(ddqMax-E)*(qMax-q)));
     if(dq>dqMaxViab+EPS):
         if(verbose):
             print("State (%f,%f) not viable because dq>dqMaxViab=%f" % (q,dq,dqMaxViab));
         return dq-dqMaxViab;
-    dqMinViab = - np.sqrt(max(0,2*(ddqMax-E.any())*(q-qMin)));
+    dqMinViab = - np.sqrt(max(0,2*(ddqMax-E)*(q-qMin)));
     if(dq<dqMinViab+EPS):
         if(verbose):
             print("State (%f,%f) not viable because dq<dqMinViab=%f" % (q,dq,dqMinViab));
@@ -436,8 +446,8 @@ def computeAccLimitsFromViability_3(q, dq, qMin, qMax, ddqMax, dt,E, verbose=Tru
     dt_dq = dt*dq;
     minus_dq_over_dt = -dq/dt;
     dt_two_dq = 2*dt_dq;
-    two_ddqMax = 2*(ddqMax-E.any());
-    dt_ddqMax_dt = (ddqMax-E.any())*dt_square;
+    two_ddqMax = 2*(ddqMax-E);
+    dt_ddqMax_dt = (ddqMax-E)*dt_square;
     dq_square = dq**2;
     q_plus_dt_dq = q + dt_dq;
     
@@ -533,3 +543,20 @@ def computeMultiAccLimits_3(q, dq, qMin, qMax, dqMax, ddqMax, dt,E, verbose=True
     for i in range(len(q)):
         (ddqLB[i], ddqUB[i]) = computeAccLimits_3(q[i], dq[i], qMin[i], qMax[i], dqMax[i], ddqMax[i], dt,E[i], verbose, ddqStop[i]);
     return (ddqLB, ddqUB);
+
+def isBoundsTooStrict_Multi(qMin,qMax,dqMax,ddqMax,dt,E):
+    print("\n #### SANITY CHECK #### \n")
+    sanity_trigger=0;
+    for i in range(qMin.size):
+        if (qMax[i]-qMin[i]<dt*dt*(ddqMax[i]+E[i])):
+            print("Position bounds on %i joint are too strict! with this acceleration and error you must have at least q= (%f , %f) \n"%(i,-(dt*dt*(ddqMax[i]+E[i]))/2, (dt*dt*(ddqMax[i]+E[i]))/2))
+            sanity_trigger=1;
+        elif (dqMax[i]<dt*(ddqMax[i]+E[i])):
+            print("Velocity bounds on %i joint are too strict! with this acceleration and error you must have at least dq= %f \n"%(i,dt*(ddqMax[i]+E[i])))
+            sanity_trigger=1;
+        else:
+            print("Joint %i OK" % (i))
+    if (sanity_trigger!=0):
+        exit();
+    else:
+        print(" Good to go \n")

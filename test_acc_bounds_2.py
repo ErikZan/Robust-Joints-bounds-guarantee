@@ -15,7 +15,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import brewer2mpl
-from acc_bounds_util_2e import isStateViable_2
+from acc_bounds_util_2e import isStateViable_2,isBoundsTooStrict
 from acc_bounds_util_2e import computeAccLimits_2
 from acc_bounds_util_2e import computeAccLimitsFromViability_2
 from acc_bounds_util_2e import computeAccLimitsFromPosLimits_2
@@ -70,16 +70,17 @@ PLOT_SIMULATION_RESULTS = True;
 TRAJECTORY = True;
 qMax    = 2.0;
 qMin    = -2.0;
-MAX_VEL = 1.0;
+MAX_VEL = 5.0;
 MAX_ACC = 10.0;
 q0      =  0.0;
 dq0     =  0.0;
 N_TESTS = 50;
 DT = 0.1;
 VIABILITY_MARGIN = 1e10; # minimum margin to leave between ddq and its bounds found through viability
-E = 0.1* MAX_ACC;
-# add fraction and trigged
-
+E = 0.3* MAX_ACC;
+# 
+# To check if the position and velocity bounds are too strict
+isBoundsTooStrict(qMin,qMax,MAX_VEL,MAX_ACC,DT,E)
 ''' State in which acc bounds from pos are stricter than acc bounds from viability '''
 #q0 = -0.086850;
 #dq0 = -0.093971;
