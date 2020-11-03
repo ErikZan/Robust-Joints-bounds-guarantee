@@ -65,7 +65,7 @@ ACC_BOUNDS_TYPE = 'VIAB'; #'VIAB', 'NAIVE'
 CONSTRAIN_JOINT_TORQUES = False;
 END_EFFECTOR_NAME = 'left_w2'; #'left_w2'; left_wrist
 W_POSTURE = 1.0e-3; # 1e-3
-T = 10.0;    # total simulation time
+T = 4.0;    # total simulation time
 DT = 0.01;  # time step
 DT_SAFE =1.01*DT; # 2*DT;
 kp = 10; # 10
@@ -83,7 +83,7 @@ DDQ_MAX = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,
 #DDQ_MIN = np.array([-12.0, -2.0, -33.0, -54.0, -358.0, -485.0, -26257.0,    
 #                    -12.0, -2.0, -33.0, -54.0, -358.0, -485.0, -26257.0])
 E = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
-                     .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.2 ; # DDQ_MAX[2]*0.3;
+                     .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.99 ; # DDQ_MAX[2]*0.3;
 q0 = np.array([ 0. , -0.0,  0. ,  0.0,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ]) ;# q0 = np.array([ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ])
 # check if bounds are OK
 isBoundsTooStrict_Multi(Q_MIN,Q_MAX,DQ_MAX,DDQ_MAX,DT,E)

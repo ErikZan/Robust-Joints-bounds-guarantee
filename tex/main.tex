@@ -1,0 +1,105 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{import}
+\usepackage{graphics} % for pdf, bitmapped graphics files
+\usepackage{epsfig} % for postscript graphics files
+\usepackage{mathptmx} % assumes new font selection scheme installed
+\usepackage{times} % assumes new font selection scheme installed
+\usepackage{amsmath} % assumes amsmath package installed
+\usepackage{amssymb}  % assumes amsmath package installed
+
+% DEL PRETE PACKAGES
+\usepackage{amssymb}  % assumes amsmath package installed
+\usepackage{colortbl}	% to color table background
+\usepackage[table]{xcolor}
+\usepackage[noend]{algpseudocode}
+\usepackage{algorithm}
+\usepackage[caption=true]{subfig}
+\usepackage[pdftex]{graphicx}
+
+\input{./math_commands.tex}
+
+\title{Roboust joint bounds guarantee}
+\author{Erik Zanolli}
+\date{October 2020}
+
+\begin{document}
+
+\maketitle
+
+
+\section{Introduction}
+Controlling a robotic system mean to deal with its bounds in position, velocity and accelerations that can derive from target-operations, from safety reason or driven by other factor such as motor performance and gearbox maximum allowable torque. The problem of controlling robots guaranteeing its joints bounds have been previous discussed in the literature. The aim of the thesis is to extend the proposed theories dealing with the adding of some disturbances on the proposed models and deal with the problem of robust control. The main basis from where we starts are the result reported in [JPVBDT]. We assume a discrete-time accelerations control to deal with the problem with a possible extension to a torque-controlled robot. The problem  
+
+Recap of presented and solved problem
+
+\section{The new algorithm}
+Our main concern is to keep this results valid also in the presence of disturbances. Initially the disturbances are assumed as bonded and the value of the bound is known. In order to obtain a robust control we deal with the worst-case error. Error affects the control of robot, namely accelerations so maximum value of nominal acceleration cannot be reached. Starting from the problem stated as in [JPVBDT] it must be considered that the limitation in terms of accelerations is given by 4 factor: position,velocity,viability and of course maximum acceleration that the joint can provide. Algorithm provided in the paper must be modified to be able to take into account the presence of error on the control input. Hereafter is shown the modified algorithm that calculate the maximum acceleration obtainable without violate the viability conditions.
+
+\begin{algorithm}[H]
+    \caption{accBoundsFromViability} 
+    \label{alg:acc_bounds_from_viab_limits}
+    \begin{algorithmic}[5]
+        \Require $q, \dq, q^{min}, q^{max}, \ddq^{max}, \dt$,$E$
+%        \Ensure $\ddq^{LB}, \ddq^{UB}$
+    	\State $a \gets \dt^2$
+    	\State $b \gets \dt (2 \dq + (\ddq^{max}-E) \dt)$
+    	\State $c \gets \dq^2 - 2 (\ddq^{max}-E) (q^{max} - q - \dt \, \dq)$
+	\State $\ddq_1 \gets -\dq / \dt$ % minus_dq_over_dt
+    	\State $\Delta \gets b^2 - 4 a c$
+    	\If{ $\Delta \ge 0$ }
+        		\State $\ddq^{UB} \gets \max(\ddq_1, (-b + \sqrt{\Delta}) / (2 a))$
+    	\Else
+        		\State $\ddq^{UB} \gets \ddq_1$
+	\EndIf
+            %print "Error: state (%f,%f) not viable because delta is negative: %f" % (q,dq,delta);
+    
+    	\State $b \gets 2 \dt \, \dq - (\ddq^{max}-E) \dt^2$
+    	\State $c \gets \dq^2 - 2 (\ddq^{max}-E) (q + \dt \, \dq - q^{min})$
+    	\State $\Delta \gets b^2 - 4 a c$
+    	\If{ $\Delta \ge 0$ }
+        		\State $\ddq^{LB} \gets \min(\ddq_1, (-b - \sqrt{\Delta}) / (2 a))$ 
+    	\Else
+        		\State $\ddq^{LB} \gets \ddq_1$
+	\EndIf
+            %print "Error: state (%f,%f) not viable because delta is negative: %f" % (q,dq,delta)
+    	\State \Return \{ $\ddq^{LB}, \ddq^{UB}$ \}
+    \end{algorithmic}
+\end{algorithm}
+
+ the others limits such as limits derived from position does not depend from the $E$ parameter regarding internal computation so it is possible to use the same algorithm as in [JPVBDT]. The Algorithm that choose the right maximum value to use derived from the intersection of all possible accelerations needs to be adapted:
+
+
+\begin{algorithm}[H]
+    \caption{Compute Joint Acceleration Bounds} 
+    \label{alg:joint_acc_bounds}
+    \begin{algorithmic}[5]
+        \Require $q, \dq, q^{min}, q^{max}, \dq^{max}, \ddq^{max}, \dt$,$E$
+%        \Ensure $\ddq^{lb}, \ddq^{ub}$
+        \State $\ddq^{UB} \gets [0, 0, 0, \ddq^{max}]$
+        \State $\ddq^{LB} \gets [0, 0, 0, -\ddq^{max}]$
+    	\State ($\ddq^{LB}[0], \ddq^{UB}[0]) \gets$ accBoundsFromPosLimits(...)+($E,-E$) %q, \dq, q^{min}, q^{max}, \ddq^{max}, \dt$)
+    	\State $\ddq^{LB}[1] \gets (-\dq^{max}-\dq) / \dt$ +E
+    	\State $\ddq^{UB}[1] \gets (\dq^{max}-\dq) / \dt$ -E
+    
+    	\State ($\ddq^{LB}[2], \ddq^{UB}[2]) \gets$ accBoundsFromViability(...)+($E,-E$) %q, \dq, q^{min}, q^{max}, \ddq^{max}, \dt$)
+    	\State \Return \{max($\ddq^{LB}$), min($\ddq^{UB}$)\}
+
+%        \If {$i\geq maxval$}
+%            \State $i\gets 0$
+%        \Else
+%            \State $i\gets i+k$
+%        \EndIf
+    \end{algorithmic}
+\end{algorithm}
+The modified algorithms can take into account of the error introduced without exceeding the bounds as is it shown. Hereafter we show a graph comparing the position velocity accelerations behaviour
+
+In the figure is possible to notice the behaviour in the 
+\subsection{discrete-time control issue}
+Controlling the joints of the robot with a discrete time control can lead to errors if the position and velocity constraints are too strict or the working \dt are too large. To check that the algorithm is working in a safe region two condition must respected
+\begin{itemize}
+\item $ q^{max} -q^{min}>=\dt^2(\ddq^{max} +E) $
+\item $\dq^{max}>=\dt (\ddq^{max}+E)$
+\end{itemize}
+this is no strictly related to the error value but more on the sum between this and the actual value: in term of violations it makes no differences if $(\ddq^{max}+E)$ value exceed because you have a large $\ddq^{max}$ and $E$ negligible instead of have a smaller $\ddq^{max}$ and much higher $E$. That would affect performance in terms of time to reach a desired position and the fluctuation around the final value but is indifferent in term of constraints violation.
+\end{document}
