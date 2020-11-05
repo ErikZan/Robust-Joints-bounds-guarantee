@@ -17,6 +17,8 @@ import plot_utils as plut
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib as mpl
+import os
+import datetime 
 
 from qp_solver import qpSolver
 from acc_bounds_util_2e import computeMultiAccLimits_3,isBoundsTooStrict_Multi
@@ -37,8 +39,11 @@ def plot_bounded_joint_quantity(time, x, X_MIN, X_MAX, name, xlabel='', ylabel='
     ax[6].set_xlabel(xlabel);
     ax[7].set_xlabel(xlabel);
     ax[0].set_title(name);
-    plut.saveFigure(TEST_NAME+'_'+name);
+    #plut.saveFigure(TEST_NAME+'_'+name);
+    plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_'+name,PARAMS)
     return ax;
+
+
 
 # Convertion from translation+quaternion to SE3 and reciprocally
 q2m = lambda q: se3.SE3( se3.Quaternion(q[6,0],q[3,0],q[4,0],q[5,0]).array(), q[:3]) # matrix
@@ -54,15 +59,18 @@ PLOT_STATE_SPACE = True;
 Q_INTERVAL = 0.001; # the range of possible angles is sampled with this step for plotting
 PLAY_TRAJECTORY_ONLINE = False;
 PLAY_TRAJECTORY_AT_THE_END = True;
-CAPTURE_IMAGES = False;
-plut.SAVE_FIGURES = False;
-plut.FIGURE_PATH = '/home/erik/Downloads';
+CAPTURE_IMAGES = True;
+plut.SAVE_FIGURES = True;
+#plut.FIGURE_PATH = '/home/erik/Desktop/Thesis/figures/baxter/';
 IMAGES_FILE_NAME = 'baxter_viab_dt_2x';
+DATE_STAMP=datetime.datetime.now().strftime("%m_%d__%H_%M_%S")
+GARBAGE_FOLDER='/home/erik/Desktop/FIGURES_T/Baxter/'+DATE_STAMP+'/'
+os.makedirs(GARBAGE_FOLDER);
 ''' END OF PLOT-RELATED USER PARAMETERS '''
 
 ''' CONTROLLER USER PARAMETERS '''
 ACC_BOUNDS_TYPE = 'VIAB'; #'VIAB', 'NAIVE'
-T = 6.0;    # total simulation time
+T = 3.0;    # total simulation time
 DT = 0.05;  # time step
 #DT_SAFE = np.array([2, 5, 20])*DT;
 DT_SAFE = np.array([1])*DT;
@@ -77,6 +85,8 @@ Q_DES[8:] = 0.0;
 E = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
                      .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.31; # DDQ_MAX[2]*0.3;
 ''' END OF CONTROLLER USER PARAMETERS '''
+
+PARAMS = np.array([T,DT,DDQ_MAX])
 # check if bounds are OK
 isBoundsTooStrict_Multi(Q_MIN,Q_MAX,DQ_MAX,DDQ_MAX,DT,E)   
 if(len(DT_SAFE)==1):
@@ -163,7 +173,7 @@ for nt in range(NDT):
 
 if(PLAY_TRAJECTORY_AT_THE_END):
     if(CAPTURE_IMAGES):
-        robot.startCapture(IMAGES_FILE_NAME);
+        robot.startCapture(IMAGES_FILE_NAME,path=GARBAGE_FOLDER+'/img/');
     robot.play(q[:,:,nt], DT);
     if(CAPTURE_IMAGES):
         robot.stopCapture();
@@ -238,7 +248,7 @@ for j in range(7):
             ax_acc.step(time[:-1], ddq[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt);
             ax_acc.step(time[:-1], ddq_des[j,:].squeeze(), 'b:', linewidth=LW);
             if(NDT==1):
-                ax_acc.step(time[:-1], ddq_lb[j,:,nt], 'o--');
+                ax_acc.step(time[:-1], ddq_lb[j,:,nt], 'y--');
                 ax_acc.step(time[:-1], ddq_ub[j,:,nt], 'g--');
         
         if(NDT>1):
@@ -273,7 +283,7 @@ for j in range(7):
             ax.set_xlabel(r'$q$ [rad]');
             ax.set_ylabel(r'$\dot{q}$ [rad/s]');
         
-        plut.saveFigure(TEST_NAME+'_j'+str(j));
+        plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_j'+str(j),PARAMS);
         
 
 plt.show()

@@ -21,7 +21,9 @@ from acc_bounds_util_2e import computeAccLimitsFromViability_2
 from acc_bounds_util_2e import computeAccLimitsFromPosLimits_2
 from inequalities_probability import InequalitiesProbability
 import sys
+import os
 import math
+import datetime
 
 def computeControlTransitionMatrix(A, B, T):
     n = B.shape[0];
@@ -77,7 +79,13 @@ dq0     =  0.0;
 N_TESTS = 50;
 DT = 0.1;
 VIABILITY_MARGIN = 1e10; # minimum margin to leave between ddq and its bounds found through viability
-E = 0.3* MAX_ACC;
+E = 0.5* MAX_ACC;
+
+DATE_STAMP=datetime.datetime.now().strftime("%m_%d__%H_%M_%S")
+GARBAGE_FOLDER='/home/erik/Desktop/FIGURES_T/'+DATE_STAMP+'/'
+os.makedirs(GARBAGE_FOLDER);
+
+PARAMS=np.array([qMax,qMin,MAX_VEL,MAX_ACC,q0,dq0,N_TESTS,DT,E])
 # 
 # To check if the position and velocity bounds are too strict
 isBoundsTooStrict(qMin,qMax,MAX_VEL,MAX_ACC,DT,E)
@@ -495,19 +503,27 @@ if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
     ax[2].step(t, np.hstack((ddq[0], ddq)), linewidth=LW);
     ax[2].plot([0, t[-1]], [MAX_ACC, MAX_ACC], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
     ax[2].plot([0, t[-1]], [-MAX_ACC, -MAX_ACC], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);# 
-    ax[2].step(t, np.hstack((ddqLB[0], ddqLB)),color='green', linewidth=LW);
-    ax[2].step(t, np.hstack((ddqUB[0], ddqUB)),color='orange', linewidth=LW)
+    ax[2].step(t, np.hstack((ddqLB[0], ddqLB)),'g--',color='green', linewidth=LW);
+    ax[2].step(t, np.hstack((ddqUB[0], ddqUB)),'g--',color='orange', linewidth=LW)
     #ax[2].plot(t[:-1], ddqLB, "--", color='red', alpha=plut.LINE_ALPHA);
     #ax[2].plot(t[:-1], ddqUB, "--", color='red', alpha=plut.LINE_ALPHA);
     #ax[2].set_title('acceleration');
     ax[2].set_xlabel('Time [s]');
     ax[2].set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
     ax[2].set_xlim([0, t[-1]]);
-    ax[2].set_ylim([np.min(ddq)-0.1*MAX_ACC, np.max(ddq)+0.1*MAX_ACC]);
+    if (np.min(ddq)<-MAX_ACC and np.max(ddq)>MAX_ACC):
+        ax[2].set_ylim([np.min(ddq)-0.1*MAX_ACC, np.max(ddq)+0.1*MAX_ACC]);
+    elif (np.min(ddq)<-MAX_ACC and np.max(ddq)<=MAX_ACC):
+            ax[2].set_ylim([np.min(ddq)-0.1*MAX_ACC, MAX_ACC+0.1*MAX_ACC]);
+    elif (np.min(ddq)>=-MAX_ACC and np.max(ddq)<MAX_ACC):
+            ax[2].set_ylim([-MAX_ACC-0.1*MAX_ACC,np.max(ddq)+0.1*MAX_ACC]);
+    else:
+        ax[2].set_ylim([-MAX_ACC-0.1*MAX_ACC, MAX_ACC+0.1*MAX_ACC]);
+        
     ax[2].yaxis.set_ticks([np.min(ddq), np.max(ddq)]);
     ax[2].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
-    
-    plut.saveFigure('max_acc_traj_'+str(E/MAX_ACC*100)+'%'+str(int(1e3*DT))+'_ms');
-    
+    #ax[0].set_title('Position')
+    plut.saveFigure('max_acc_traj_'+str(E/MAX_ACC*100)+'_'+str(int(1e3*DT))+'_ms');
+    plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,'max_acc',PARAMS)
 plt.show();
     

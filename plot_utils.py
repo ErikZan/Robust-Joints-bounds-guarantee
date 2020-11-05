@@ -8,6 +8,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
+import datetime
 
 DEFAULT_FONT_SIZE = 50;
 DEFAULT_AXIS_FONT_SIZE = DEFAULT_FONT_SIZE;
@@ -62,6 +63,12 @@ def saveFigure(title):
     if(SAVE_FIGURES):
         for ext in FILE_EXTENSIONS:
             plt.gcf().savefig(FIGURE_PATH+title.replace(' ', '_')+'.'+ext, format=ext, dpi=FIGURES_DPI, bbox_inches='tight');
+            
+def saveFigureandParameterinDateFolder(Folder,title,params):
+    if(SAVE_FIGURES):
+        for ext in FILE_EXTENSIONS:
+            plt.gcf().savefig(Folder+title.replace(' ', '_')+'.'+ext, format=ext, dpi=FIGURES_DPI, bbox_inches='tight');
+        #np.savetxt(Folder+"parameters.txt", params)
             
 def movePlotSpines(ax, spinesPos):
     ax.spines['right'].set_color('none')

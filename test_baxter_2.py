@@ -17,7 +17,8 @@ import plot_utils as plut
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib as mpl
- 
+import datetime
+
 from qp_solver import qpSolver
 from acc_bounds_util_2e import computeMultiAccLimits_3,isBoundsTooStrict_Multi
 from baxter_wrapper import BaxterWrapper, Q_MIN, Q_MAX, DQ_MAX, TAU_MAX, MODELPATH
@@ -37,7 +38,8 @@ def plot_bounded_joint_quantity(time, x, X_MIN, X_MAX, name, xlabel='', ylabel='
     ax[6].set_xlabel(xlabel);
     ax[7].set_xlabel(xlabel);
     ax[0].set_title(name);
-    plut.saveFigure(TEST_NAME+'_'+name);
+    #plut.saveFigure(TEST_NAME+'_'+name);
+    plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_'+name,1)
     return ax;
 
 # Convertion from translation+quaternion to SE3 and reciprocally
@@ -52,11 +54,15 @@ PLOT_JOINT_POS_VEL_ACC_TAU = 0;
 Q_INTERVAL = 0.001; # the range of possible angles is sampled with this step for plotting
 PLAY_TRAJECTORY_ONLINE = False;
 PLAY_TRAJECTORY_AT_THE_END = True;
-CAPTURE_IMAGES = False;
-plut.SAVE_FIGURES = 0;
-plut.FIGURE_PATH = '/home/erik/Downloads/';
+CAPTURE_IMAGES = True;
+plut.SAVE_FIGURES = 1;
+#plut.FIGURE_PATH = '/home/erik/Desktop/Thesis/figures/baxter/'; # old path => SaveFigurewithDire... usa GarbageFlder now
 IMAGES_FILE_NAME = 'baxter_viab_dt_2x';
 BACKGROUND_COLOR = (1.0, 1.0, 1.0, 1.0);
+
+DATE_STAMP=datetime.datetime.now().strftime("%m_%d__%H_%M_%S")
+GARBAGE_FOLDER='/home/erik/Desktop/FIGURES_T/'+DATE_STAMP+'/'
+os.makedirs(GARBAGE_FOLDER);
 ''' END OF PLOT-RELATED USER PARAMETERS '''
 
 ''' CONTROLLER USER PARAMETERS '''
@@ -68,8 +74,8 @@ W_POSTURE = 1.0e-3; # 1e-3
 T = 4.0;    # total simulation time
 DT = 0.01;  # time step
 DT_SAFE =1.01*DT; # 2*DT;
-kp = 10; # 10
-kp_post = 10;
+kp = 100; # 10 default , 100 improve performance with error
+kp_post = 100;
 kd = 2*sqrt(kp);
 kd_post = 2*sqrt(kp_post);
 
@@ -83,8 +89,9 @@ DDQ_MAX = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,
 #DDQ_MIN = np.array([-12.0, -2.0, -33.0, -54.0, -358.0, -485.0, -26257.0,    
 #                    -12.0, -2.0, -33.0, -54.0, -358.0, -485.0, -26257.0])
 E = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
-                     .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.99 ; # DDQ_MAX[2]*0.3;
+                     .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.5 ; # DDQ_MAX[2]*0.3;
 q0 = np.array([ 0. , -0.0,  0. ,  0.0,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ]) ;# q0 = np.array([ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ])
+
 # check if bounds are OK
 isBoundsTooStrict_Multi(Q_MIN,Q_MAX,DQ_MAX,DDQ_MAX,DT,E)
 Q_POSTURE = np.array(0.5*(Q_MIN+Q_MAX));
@@ -205,7 +212,7 @@ print('Difference between desired and measured e-e pose: M.inverse()*M_des', m2q
 
 if(PLAY_TRAJECTORY_AT_THE_END):
     if(CAPTURE_IMAGES):
-        robot.startCapture(IMAGES_FILE_NAME);
+        robot.startCapture(IMAGES_FILE_NAME,path=GARBAGE_FOLDER+'/img/');
     robot.play(q, DT);
     if(CAPTURE_IMAGES):
         robot.stopCapture();
@@ -228,7 +235,7 @@ if(PLOT_END_EFFECTOR_POS):
     ax[1].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.2f'));
     ax[2].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.2f'));
     ax[2].xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1f'));
-    plut.saveFigure(TEST_NAME+'_ee');
+    plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_ee',1)
     ax[0].set_title('End-effector position');
 
 if(PLOT_END_EFFECTOR_ACC):
@@ -327,7 +334,7 @@ for j in range(7):
         ax.set_xlabel(r'$q$ [rad]');
         ax.set_ylabel(r'$\dot{q}$ [rad/s]');
         
-        plut.saveFigure(TEST_NAME+'_j'+str(j));
+        plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_j'+str(j),1);
         
 
 plt.show()

@@ -560,3 +560,5 @@ def isBoundsTooStrict_Multi(qMin,qMax,dqMax,ddqMax,dt,E):
         exit();
     else:
         print(" Good to go \n")
+        
+        

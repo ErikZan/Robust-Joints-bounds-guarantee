@@ -138,13 +138,17 @@ class BaxterWrapper(RobotWrapper):
             lastRefreshTime = time();
             if(print_time_every>0.0 and t*dt%print_time_every==0.0):
                 print("%.1f"%(t*dt));
-                
-    def startCapture(self, filename, extension='jpeg', path='/home/erik/Downloads/'):
+    '''            
+    def startCapture(self, filename, extension='jpeg', path='/home/erik/Desktop/Thesis/figures/baxter/'):
         if(not os.path.exists(path)):
             os.makedirs(path);
-        self.viewer.gui.startCapture(self.windowID, path+filename, extension);
-        
+        self.viewer.gui.startCapture(self.windowID, path+filename, extension);'''
+
+    def startCapture(self, filename, extension='jpeg', path='/home/erik/Desktop/Thesis/figures/baxter/'):
+        if(not os.path.exists(path)):
+            os.makedirs(path);
+        self.viewer.gui.startCapture('python-pinocchio', path+filename, extension);
     def stopCapture(self):
-        self.viewer.gui.stopCapture(self.windowID);
+        self.viewer.gui.stopCapture('python-pinocchio');
 
 __all__ = [ 'BaxterWrapper' ]
