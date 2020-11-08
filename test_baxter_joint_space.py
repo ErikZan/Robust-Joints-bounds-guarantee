@@ -21,7 +21,7 @@ import os
 import datetime 
 
 from qp_solver import qpSolver
-from acc_bounds_util_2e import computeMultiAccLimits_3,isBoundsTooStrict_Multi
+from acc_bounds_util_2e import computeMultiAccLimits_3,isBoundsTooStrict_Multi,DiscreteViabilityConstraints_Multi
 from baxter_wrapper import BaxterWrapper, Q_MIN, Q_MAX, DQ_MAX, TAU_MAX, MODELPATH
                 
 def plot_bounded_joint_quantity(time, x, X_MIN, X_MAX, name, xlabel='', ylabel=''):
@@ -64,7 +64,7 @@ plut.SAVE_FIGURES = True;
 #plut.FIGURE_PATH = '/home/erik/Desktop/Thesis/figures/baxter/';
 IMAGES_FILE_NAME = 'baxter_viab_dt_2x';
 DATE_STAMP=datetime.datetime.now().strftime("%m_%d__%H_%M_%S")
-GARBAGE_FOLDER='/home/erik/Desktop/FIGURES_T/Baxter/'+DATE_STAMP+'/'
+GARBAGE_FOLDER='/home/erik/Desktop/FIGURES_T/Baxter_JS/'+DATE_STAMP+'/'
 os.makedirs(GARBAGE_FOLDER);
 ''' END OF PLOT-RELATED USER PARAMETERS '''
 
@@ -83,12 +83,13 @@ Q_DES = np.array(0.5*(Q_MIN+Q_MAX)).T;
 Q_DES[0] = Q_MAX[0] + 0.5;
 Q_DES[8:] = 0.0;
 E = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
-                     .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.31; # DDQ_MAX[2]*0.3;
+                     .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.35; # DDQ_MAX[2]*0.3;
 ''' END OF CONTROLLER USER PARAMETERS '''
 
 PARAMS = np.array([T,DT,DDQ_MAX])
 # check if bounds are OK
-isBoundsTooStrict_Multi(Q_MIN,Q_MAX,DQ_MAX,DDQ_MAX,DT,E)   
+#isBoundsTooStrict_Multi(Q_MIN,Q_MAX,DQ_MAX,DDQ_MAX,DT,E)   
+DiscreteViabilityConstraints_Multi(Q_MIN,Q_MAX,DQ_MAX,DDQ_MAX,DT,E)
 if(len(DT_SAFE)==1):
     line_styles[0] = 'b-';
 

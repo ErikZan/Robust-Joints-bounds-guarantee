@@ -15,7 +15,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import brewer2mpl
-from acc_bounds_util_2e import isStateViable_2,isBoundsTooStrict
+from acc_bounds_util_2e import isStateViable_2,isBoundsTooStrict,DiscreteViabilityConstraints
 from acc_bounds_util_2e import computeAccLimits_2
 from acc_bounds_util_2e import computeAccLimitsFromViability_2
 from acc_bounds_util_2e import computeAccLimitsFromPosLimits_2
@@ -60,40 +60,43 @@ LW = 2;
 EPS = 1e-10;
 
 # MAX and MIN are the only supported 
-TEST_MAX_ACC = 1;    # if true select always the maximum acceleration possible 
+TEST_DISCRETE_VIABILITY= True
+TEST_MAX_ACC = 0;    # if true select always the maximum acceleration possible 
 TEST_MIN_ACC = 0;    # if true select always the minimum acceleration possible 
 TEST_MED_ACC = False;    # if true select always the average of max and min acc
-TEST_MED_POS_ACC = True;    # if true select always the average of max and min acc imposed by pos bounds (saturated if necessary)
+TEST_MED_POS_ACC = 0;    # if true select always the average of max and min acc imposed by pos bounds (saturated if necessary)
 PLOT_STATE_SPACE = True;
 PLOT_STATE_SPACE_DECRE = True;
 PLOT_STATE_SPACE_PADOIS = True;
 PLOT_STATE_SPACE_PROBABILITY = False;
 PLOT_SIMULATION_RESULTS = True;
 TRAJECTORY = True;
+
 qMax    = 2.0;
 qMin    = -2.0;
 MAX_VEL = 5.0;
 MAX_ACC = 10.0;
-q0      =  0.0;
-dq0     =  0.0;
 N_TESTS = 50;
 DT = 0.1;
 VIABILITY_MARGIN = 1e10; # minimum margin to leave between ddq and its bounds found through viability
-E = 0.5* MAX_ACC;
+E = 0.33* MAX_ACC;
+#qMin    = qMax-DT*DT*(MAX_ACC+E)-1e-03; # Previous Value for IsBoundsTooStrict
+#qMin    = qMax - DT*DT*(MAX_ACC+2*E+(E**2)/(MAX_ACC-E))-1e-03; # Qmin minimum allowable bound for DiscreteViabilityConstraints()
+q0      =  0.0 # (qMax+qMin)/2; # center of workspace
+dq0     =  0.0;
+#qMin    =1.805882353-1e-03
 
 DATE_STAMP=datetime.datetime.now().strftime("%m_%d__%H_%M_%S")
 GARBAGE_FOLDER='/home/erik/Desktop/FIGURES_T/'+DATE_STAMP+'/'
 os.makedirs(GARBAGE_FOLDER);
 
 PARAMS=np.array([qMax,qMin,MAX_VEL,MAX_ACC,q0,dq0,N_TESTS,DT,E])
-# 
+ 
 # To check if the position and velocity bounds are too strict
-isBoundsTooStrict(qMin,qMax,MAX_VEL,MAX_ACC,DT,E)
+#isBoundsTooStrict(qMin,qMax,MAX_VEL,MAX_ACC,DT,E)
+
+DiscreteViabilityConstraints(qMin,qMax,MAX_VEL,MAX_ACC,DT,E)
 ''' State in which acc bounds from pos are stricter than acc bounds from viability '''
-#q0 = -0.086850;
-#dq0 = -0.093971;
-#qMin = -0.087266;
-#DT = 0.01
 
 DT_SAFE = 1.01*DT # 1.01*DT;
 Q_INTERVAL = 0.02; # for plotting the range of possible angles is sampled with this step
@@ -218,9 +221,16 @@ for i in range(N_TESTS):
         ddq[i] = -MAX_ACC;
 
     if(TEST_MAX_ACC):     # if true select always the maximum acceleration possible 
-        ddq[i]+=E  #*random(1);
+        ddq[i]+=E  #*random(1);   
     elif(TEST_MIN_ACC):
         ddq[i]-=E  #*random(1); 
+        
+    elif(TEST_DISCRETE_VIABILITY):
+        if (dq[i]<=0):
+            ddq[i]-=E;
+        else:
+            ddq[i]+=E;
+        
 
     dq[i+1] = dq[i] + DT*ddq[i]                     #+ error_trigger*(DT*MAX_ACC*fraction*random(1) - DT*MAX_ACC*fraction*random(1)); # adding error;
     q[i+1]  = q[i] + DT*dq[i] + 0.5*(DT**2)*ddq[i]  #+ error_trigger*(0.5*DT**2*MAX_ACC*fraction*random(1) - 0.5*DT**2*MAX_ACC*fraction*random(1)); # adding error;

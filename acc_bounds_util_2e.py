@@ -369,7 +369,21 @@ def isBoundsTooStrict(qMin,qMax,dqMax,ddqMax,dt,E):
         exit()
     else:
         print("Bounds are all rights. Good to go \n")
-
+        
+def DiscreteViabilityConstraints(qMin,qMax,dqMax,ddqMax,dt,E):
+    print("\n #### SANITY CHECK #### \n")
+    if (E>0.333333*ddqMax):
+        print("Maximum allowable Error is 1/3 of Acceleration Bound! Now is %d\n",(E))
+        exit()
+    elif (qMax-qMin<dt*dt*(ddqMax+2*E+(E*E)/(ddqMax-E))):
+        print("Position bounds are too strict! with this acceleration and error you must have at least q= (%f , %f) \n"%(-(dt*dt*(ddqMax+E))/2, (dt*dt*(ddqMax+E))/2))
+        exit()
+    elif (dqMax<dt*(ddqMax+E)):
+        print("Velocity bounds are too strict! with this acceleration and error you must have at least dq= %f \n"%(dt*(ddqMax+E)))
+        exit()
+    else:
+        print("Bounds are all rights. Good to go \n")
+        
 ################################################################################################
 ################################################################################################
 
@@ -561,4 +575,22 @@ def isBoundsTooStrict_Multi(qMin,qMax,dqMax,ddqMax,dt,E):
     else:
         print(" Good to go \n")
         
-        
+def DiscreteViabilityConstraints_Multi(qMin,qMax,dqMax,ddqMax,dt,E):
+    print("\n #### Discrete Viability Constraints CHECK #### \n")
+    sanity_trigger=0;
+    for i in range(qMin.size):
+        if (E[i]>0.333333*ddqMax[i]):
+            print("Maximum allowable Error is 1/3 of Acceleration Bound! For Bound %i is %f \n"%(i,E[i]))
+            exit();
+        if (qMax[i]-qMin[i]<dt*dt*(ddqMax[i]+2*E[i]+(E[i]**2)/(qMax[i]-E[i]))):
+            print("Position bounds on %i joint are too strict! with this acceleration and error you must have at least q= (%f , %f) \n"%(i,-(dt*dt*(ddqMax[i]+E[i]))/2, (dt*dt*(ddqMax[i]+E[i]))/2))
+            sanity_trigger=1;
+        elif (dqMax[i]<dt*(ddqMax[i]+E[i])):
+            print("Velocity bounds on %i joint are too strict! with this acceleration and error you must have at least dq= %f \n"%(i,dt*(ddqMax[i]+E[i])))
+            sanity_trigger=1;
+        else:
+            print("Joint %i OK" % (i))
+    if (sanity_trigger!=0):
+        exit();
+    else:
+        print(" Good to go \n")
