@@ -24,6 +24,7 @@ import sys
 import os
 import math
 import datetime
+import matplotlib.patches as mpatches
 
 def computeControlTransitionMatrix(A, B, T):
     n = B.shape[0];
@@ -60,20 +61,21 @@ LW = 2;
 EPS = 1e-10;
 
 # MAX and MIN are the only supported 
-TEST_DISCRETE_VIABILITY= True
+TEST_DISCRETE_VIABILITY= 1 # if true when velocity is postive add the positive bound value of disturbances, when negative the negative bound value
 TEST_MAX_ACC = 0;    # if true select always the maximum acceleration possible 
 TEST_MIN_ACC = 0;    # if true select always the minimum acceleration possible 
 TEST_MED_ACC = False;    # if true select always the average of max and min acc
 TEST_MED_POS_ACC = 0;    # if true select always the average of max and min acc imposed by pos bounds (saturated if necessary)
+TEST_RANDOM=0
 PLOT_STATE_SPACE = True;
-PLOT_STATE_SPACE_DECRE = True;
-PLOT_STATE_SPACE_PADOIS = True;
+PLOT_STATE_SPACE_DECRE = False;
+PLOT_STATE_SPACE_PADOIS = False;
 PLOT_STATE_SPACE_PROBABILITY = False;
 PLOT_SIMULATION_RESULTS = True;
 TRAJECTORY = True;
-
-qMax    = 2.0;
-qMin    = -2.0;
+PLOT_SINGULAR = True;
+qMax    = 0.1;
+qMin    = -0.1;
 MAX_VEL = 5.0;
 MAX_ACC = 10.0;
 N_TESTS = 50;
@@ -221,16 +223,18 @@ for i in range(N_TESTS):
         ddq[i] = -MAX_ACC;
 
     if(TEST_MAX_ACC):     # if true select always the maximum acceleration possible 
-        ddq[i]+=E  #*random(1);   
+        ddq[i]+=E     
     elif(TEST_MIN_ACC):
-        ddq[i]-=E  #*random(1); 
-        
+        ddq[i]-=E   
+    elif(TEST_RANDOM):
+        ddq[i]+=E*(random(1)/2-random(1)/2);
     elif(TEST_DISCRETE_VIABILITY):
         if (dq[i]<=0):
             ddq[i]-=E;
         else:
             ddq[i]+=E;
         
+    
 
     dq[i+1] = dq[i] + DT*ddq[i]                     #+ error_trigger*(DT*MAX_ACC*fraction*random(1) - DT*MAX_ACC*fraction*random(1)); # adding error;
     q[i+1]  = q[i] + DT*dq[i] + 0.5*(DT**2)*ddq[i]  #+ error_trigger*(0.5*DT**2*MAX_ACC*fraction*random(1) - 0.5*DT**2*MAX_ACC*fraction*random(1)); # adding error;
@@ -355,20 +359,20 @@ if(PLOT_STATE_SPACE):
     # plot viability constraints
     qMid = 0.5*(qMin+qMax);
     q_mid_2_max = np.arange(qMid, qMax+Q_INTERVAL, Q_INTERVAL);
-    dq_viab_pos = np.sqrt(np.max([np.zeros(q_mid_2_max.shape),2*MAX_ACC*(qMax-q_mid_2_max)],0));
+    dq_viab_pos = np.sqrt(np.max([np.zeros(q_mid_2_max.shape),2*(MAX_ACC-E)*(qMax-q_mid_2_max)],0)); #MAX_ACC => (MAX_ACC-E)
     line_viab, = ax.plot(q_mid_2_max, dq_viab_pos, 'r--');
     q_min_2_mid = np.arange(qMid, qMin-Q_INTERVAL, -Q_INTERVAL);
-    dq_viab_neg = -np.sqrt(np.max([np.zeros(q_min_2_mid.shape),2*MAX_ACC*(q_min_2_mid-qMin)],0));
+    dq_viab_neg = -np.sqrt(np.max([np.zeros(q_min_2_mid.shape),2*(MAX_ACC-E)*(q_min_2_mid-qMin)],0));
     ax.plot(q_min_2_mid, dq_viab_neg, 'r--');
     
     # plot implicit constraints
-    t_max = np.sqrt((qMax-qMin)/MAX_ACC);
+    t_max = np.sqrt((qMax-qMin)/(MAX_ACC-E));
     t = np.arange(0, t_max, 0.001);
-    q_plot = qMax - 0.5*(t**2)*MAX_ACC;
-    dq_plot = -t*MAX_ACC;
+    q_plot = qMax - 0.5*(t**2)*(MAX_ACC-E);
+    dq_plot = -t*(MAX_ACC-E);
     line_impl, = ax.plot(q_plot,dq_plot, 'b--');
-    q_plot = qMin + 0.5*(t**2)*MAX_ACC;
-    dq_plot = t*MAX_ACC;
+    q_plot = qMin + 0.5*(t**2)*(MAX_ACC-E);
+    dq_plot = t*(MAX_ACC-E);
     ax.plot(q_plot,dq_plot, 'b--');
     
     dq_viab_neg[np.where(dq_viab_neg < -MAX_VEL)[0]] = -MAX_VEL;
@@ -383,7 +387,6 @@ if(PLOT_STATE_SPACE):
     # plot position bounds
     line_pos, = ax.plot([qMin, qMin], [-MAX_VEL, MAX_VEL], 'k--');
     ax.plot([qMax, qMax], [-MAX_VEL, MAX_VEL], 'k--');
-    
 #    if(PLOT_STATE_SPACE_DECRE):
 #        dq_plot = np.arange(0, MAX_VEL, DQ_INTERVAL);
 #        q_plot = np.zeros(dq_plot.shape);
@@ -458,10 +461,11 @@ if(PLOT_STATE_SPACE):
     ax.yaxis.set_ticks([]);
     ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
     ax.set_xlim([1.1*qMin, 1.1*qMax]);
-    ax.set_ylim([-1.1*max_vel_from_pos_acc_bounds, 1.1*max_vel_from_pos_acc_bounds]);
+    ax.set_ylim([-1.1*MAX_VEL, 1.1*MAX_VEL]);
     ax.set_xlabel(r'$q$');
     ax.set_ylabel(r'$\dot{q}$');
     
+plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,'State_Space'+str(E),PARAMS)
            
         
 
@@ -533,7 +537,69 @@ if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
     ax[2].yaxis.set_ticks([np.min(ddq), np.max(ddq)]);
     ax[2].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
     #ax[0].set_title('Position')
-    plut.saveFigure('max_acc_traj_'+str(E/MAX_ACC*100)+'_'+str(int(1e3*DT))+'_ms');
+    #plut.saveFigure('max_acc_traj_'+str(E/MAX_ACC*100)+'_'+str(int(1e3*DT))+'_ms');
     plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,'max_acc',PARAMS)
+    
+if(PLOT_SINGULAR):
+    if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
+        
+        (f,pax) = create_empty_figure(1);
+        pax.plot(t_small, q_small, linewidth=LW);
+        pax.plot([0, t[-1]], [qMax, qMax], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
+        pax.plot([0, t[-1]], [qMin, qMin], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
+        pax.set_title('position');
+        pax.set_ylabel(r'$q$ [rad]');
+        pax.set_xlim([0, t[-1]]);
+        pax.set_ylim([np.min(q_small)-0.1, np.max(q_small)+0.1]);
+        pax.yaxis.set_ticks([np.min(q_small), np.max(q_small)]);
+        pax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
+        plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,'Position',PARAMS)
+        
+        (f,vax) = create_empty_figure(1)
+        vax.plot(t, dq, linewidth=LW);
+        vax.plot([0, t[-1]], [MAX_VEL, MAX_VEL], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
+        vax.plot([0, t[-1]], [-MAX_VEL, -MAX_VEL], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
+        vax.set_ylim([np.min(dq)-0.1*MAX_VEL, np.max(dq)+0.1*MAX_VEL]);
+        if(np.max(dq)>0.0 and np.min(dq)<0):
+            vax.yaxis.set_ticks([np.min(dq), 0, np.max(dq)]);
+        else:        
+            vax.yaxis.set_ticks([np.min(dq), np.max(dq)]);
+        vax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
+        vax.set_title('velocity');
+        vax.set_ylabel(r'$\dot{q}$ [rad/s]');
+        vax.set_xlim([0, t[-1]]);
+        plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,'Velocity',PARAMS)
+        
+        (f,aax) = create_empty_figure(1)
+        aax.step(t, np.hstack((ddq[0], ddq)), linewidth=LW);
+        aax.plot([0, t[-1]], [MAX_ACC, MAX_ACC], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
+        aax.plot([0, t[-1]], [-MAX_ACC, -MAX_ACC], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);# 
+        lw_b=aax.step(t, np.hstack((ddqLB[0], ddqLB)),'g--',color='green', linewidth=LW,label='lower bound');
+        up_b=aax.step(t, np.hstack((ddqUB[0], ddqUB)),'g--',color='orange', linewidth=LW,label='upper bound');
+    #    aax.plot(t[:-1], ddqLB, "--", color='red', alpha=plut.LINE_ALPHA);
+    #    aax.plot(t[:-1], ddqUB, "--", color='red', alpha=plut.LINE_ALPHA);
+        #aax.set_title('acceleration');
+        aax.set_xlabel('Time [s]');
+        aax.set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
+        aax.set_xlim([0, t[-1]]);
+        if (np.min(ddq)<-MAX_ACC and np.max(ddq)>MAX_ACC):
+            aax.set_ylim([np.min(ddq)-0.1*MAX_ACC, np.max(ddq)+0.1*MAX_ACC]);
+        elif (np.min(ddq)<-MAX_ACC and np.max(ddq)<=MAX_ACC):
+                aax.set_ylim([np.min(ddq)-0.1*MAX_ACC, MAX_ACC+0.1*MAX_ACC]);
+        elif (np.min(ddq)>=-MAX_ACC and np.max(ddq)<MAX_ACC):
+                aax.set_ylim([-MAX_ACC-0.1*MAX_ACC,np.max(ddq)+0.1*MAX_ACC]);
+        else:
+            aax.set_ylim([-MAX_ACC-0.1*MAX_ACC, MAX_ACC+0.1*MAX_ACC]);
+        
+        aax.yaxis.set_ticks([np.min(ddq), np.max(ddq)]);
+        aax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
+        lege1=mpatches.Patch(color='orange',label='Acceleration lower bound');
+        lege2=mpatches.Patch(color='blue',label='Acceleration');
+        lege3=mpatches.Patch(color='green',label='Acceleration upper bound');
+        aax.legend(handles=[lege1,lege3,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),
+                    bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+        plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,'Acceleration',PARAMS)
+    #ax[0].set_title('Position')
+    #plut.saveFigure('max_acc_traj_'+str(E/MAX_ACC*100)+'_'+str(int(1e3*DT))+'_ms');
 plt.show();
     

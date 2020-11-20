@@ -7,7 +7,8 @@ Created on Tue Jun 14 11:52:00 2016
 
 import pinocchio as se3
 from pinocchio.utils import *
-
+from plot_utils import create_empty_figure
+import matplotlib.patches as mpatches
 import numpy.matlib
 from numpy.linalg import pinv
 from math import sqrt
@@ -17,6 +18,7 @@ import plot_utils as plut
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib as mpl
+import numpy as np
 import os
 import datetime 
 
@@ -57,10 +59,14 @@ line_styles     =["c-", "b--", "g-.", "k:", "m-"];
 PLOT_JOINT_POS_VEL_ACC = True;
 PLOT_STATE_SPACE = True;
 Q_INTERVAL = 0.001; # the range of possible angles is sampled with this step for plotting
+TEST_STANDARD = 0;
+TEST_VIABILITY=1;
+TEST_RANDOM=0;
 PLAY_TRAJECTORY_ONLINE = False;
 PLAY_TRAJECTORY_AT_THE_END = True;
 CAPTURE_IMAGES = True;
 plut.SAVE_FIGURES = True;
+PLOT_SINGULAR = True;
 #plut.FIGURE_PATH = '/home/erik/Desktop/Thesis/figures/baxter/';
 IMAGES_FILE_NAME = 'baxter_viab_dt_2x';
 DATE_STAMP=datetime.datetime.now().strftime("%m_%d__%H_%M_%S")
@@ -83,7 +89,7 @@ Q_DES = np.array(0.5*(Q_MIN+Q_MAX)).T;
 Q_DES[0] = Q_MAX[0] + 0.5;
 Q_DES[8:] = 0.0;
 E = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
-                     .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.35; # DDQ_MAX[2]*0.3;
+                     .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.33; # DDQ_MAX[2]*0.3;
 ''' END OF CONTROLLER USER PARAMETERS '''
 
 PARAMS = np.array([T,DT,DDQ_MAX])
@@ -165,11 +171,22 @@ for nt in range(NDT):
                 ddq[j,t,nt] = -DDQ_MAX[j];
                 
         ''' Numerical Integration '''
-        ddq[:,t,nt]+=E;
+        
+        if(TEST_STANDARD):
+            ddq[:,t,nt]+=E;
+        elif(TEST_RANDOM):
+            ddq[:,t,nt]+=E*(random(1)/2-random(1)/2);
+        elif(TEST_VIABILITY):
+            for k in range(14):
+                if(dq[k,t,nt]<=0):
+                    ddq[k,t,nt]-=E[k];
+                else:
+                    ddq[k,t,nt]+=E[k];
+                
         q[:,t+1,nt] = q[:,t,nt] + DT*dq[:,t,nt] + 0.5*DT*DT*ddq[:,t,nt];
         dq[:,t+1,nt] = dq[:,t,nt] + DT*ddq[:,t,nt];
         if(PLAY_TRAJECTORY_ONLINE):
-            robot.display(q[:,t+1,nt]);
+                robot.display(q[:,t+1,nt]);
     #       sleep(DT);
 
 if(PLAY_TRAJECTORY_AT_THE_END):
@@ -185,6 +202,7 @@ if(PLOT_JOINT_POS_VEL_ACC):
     plot_bounded_joint_quantity(time,        q.squeeze(),       Q_MIN,   Q_MAX, 'Joint positions', 'Time [s]', r'$q$ [rad]');
     plot_bounded_joint_quantity(time,       dq.squeeze(),   -1*DQ_MAX,  DQ_MAX, 'Joint velocities', 'Time [s]', r'$q$ [rad/s]');
     plot_bounded_joint_quantity(time[:-1], ddq.squeeze(),  -1*DDQ_MAX, DDQ_MAX, 'Joint accelerations', 'Time [s]', r'$\ddot{q}$ [rad/s${}^2$]');
+    
 
 for j in range(7):
     qMax = Q_MAX[j];
@@ -240,7 +258,15 @@ for j in range(7):
         ax_acc.set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
         ax_acc.yaxis.set_ticks([-DDQ_MAX[j], DDQ_MAX[j]]);
         ax_acc.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
-        ax_acc.set_ylim([-1.1*DDQ_MAX[j], 1.1*DDQ_MAX[j]]);
+        if (np.min(ddq[j,:,:])<-DDQ_MAX[j] and np.max(ddq[j,:,:])>DDQ_MAX[j]):
+            ax_acc.set_ylim([np.min(ddq[j,:,:])-0.1*DDQ_MAX[j], np.max(ddq[j,:,:])+0.1*DDQ_MAX[j]]);
+        elif (np.min(ddq[j,:,:])<-DDQ_MAX[j] and np.max(ddq[j,:,:])<=DDQ_MAX[j]):
+            ax_acc.set_ylim([np.min(ddq[j,:,:])-0.1*DDQ_MAX[j], DDQ_MAX[j]+0.1*DDQ_MAX[j]]);
+        elif (np.min(ddq[j,:,:])>=-DDQ_MAX[j] and np.max(ddq[j,:,:])<DDQ_MAX[j]):
+            ax_acc.set_ylim([-DDQ_MAX[j]-0.1*DDQ_MAX[j],np.max(ddq[j,:,:])+0.1*DDQ_MAX[j]]);
+        else:
+            ax_acc.set_ylim([-DDQ_MAX[j]-0.1*DDQ_MAX[j], DDQ_MAX[j]+0.1*DDQ_MAX[j]]);
+        #ax_acc.set_ylim([-1.1*DDQ_MAX[j], 1.1*DDQ_MAX[j]]);
         
         ax[2].set_xlabel('Time [s]');
         for nt in range(NDT):
@@ -249,8 +275,12 @@ for j in range(7):
             ax_acc.step(time[:-1], ddq[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt);
             ax_acc.step(time[:-1], ddq_des[j,:].squeeze(), 'b:', linewidth=LW);
             if(NDT==1):
-                ax_acc.step(time[:-1], ddq_lb[j,:,nt], 'y--');
-                ax_acc.step(time[:-1], ddq_ub[j,:,nt], 'g--');
+                ax_acc.step(time[:-1], ddq_lb[j,:,nt], 'y--',linewidth=LW/2);
+                ax_acc.step(time[:-1], ddq_ub[j,:,nt], 'g--',linewidth=LW/2);
+            
+        # Keep the main external value as bound for plot (only graphical things)        
+       
+        plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_j'+str(j)+'p_vel_acc',PARAMS);
         
         if(NDT>1):
             leg = ax_pos.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=NDT, mode="expand", borderaxespad=0.)
@@ -286,6 +316,66 @@ for j in range(7):
         
         plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_j'+str(j),PARAMS);
         
-
+        # Better for manage image
+        if(PLOT_SINGULAR):
+            (f,ax_poss) = create_empty_figure(1);
+            ax_poss.plot([time[0], time[-1]], [Q_MAX[j], Q_MAX[j]], 'r--');
+            ax_poss.plot([time[0], time[-1]], [Q_MIN[j], Q_MIN[j]], 'r--');
+            ax_poss.plot(time, q[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt, label=r'$\delta t=$'+str(int(DT_SAFE[nt]/DT))+'x');
+            ax_poss.set_ylabel(r'$q$ [rad]');
+            ax_poss.yaxis.set_ticks([Q_MIN[j], Q_MAX[j]]);
+            ax_poss.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
+            ax_poss.set_ylim([np.min(q[j,:,:]), 1.1*np.max(q[j,:,:])]);
+            ax_poss.set_title('Position joint '+str(j));
+            plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_POS_j'+str(j),PARAMS);
+            
+            # plot velocity
+            (f,ax_vell) = create_empty_figure(1);
+#           plut.movePlotSpines(ax_vel, [0, 0]);
+            ax_vell.plot([time[0], time[-1]], [DQ_MAX[j], DQ_MAX[j]], 'r--');
+            ax_vell.plot([time[0], time[-1]], [-DQ_MAX[j], -DQ_MAX[j]], 'r--');
+            ax_vell.plot(time, dq[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt);
+            ax_vell.set_ylabel(r'$\dot{q}$ [rad/s]');
+            ax_vell.yaxis.set_ticks([DQ_MAX[j], DQ_MAX[j]]);
+            ax_vell.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
+            ax_vell.set_ylim([-1.1*DQ_MAX[j], 1.1*DQ_MAX[j]]);
+            ax_vell.set_title('Velocity joint '+str(j));
+            plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_VEL_j'+str(j),PARAMS);
+            
+        #   plot acceleration
+            (f,ax_accc) = create_empty_figure(1);
+#           plut.movePlotSpines(ax_acc, [0, 0]);        
+            up_lim=ax_accc.plot([time[0], time[-1]], [ DDQ_MAX[j],  DDQ_MAX[j]], 'r--');
+            ax_accc.plot([time[0], time[-1]], [-DDQ_MAX[j], -DDQ_MAX[j]], 'r--');
+            ax_accc.set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
+            ax_accc.yaxis.set_ticks([-DDQ_MAX[j], DDQ_MAX[j]]);
+            ax_accc.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
+            if (np.min(ddq[j,:,:])<-DDQ_MAX[j] and np.max(ddq[j,:,:])>DDQ_MAX[j]):
+                ax_accc.set_ylim([np.min(ddq[j,:,:])-0.1*DDQ_MAX[j], np.max(ddq[j,:,:])+0.1*DDQ_MAX[j]]);
+            elif (np.min(ddq[j,:,:])<-DDQ_MAX[j] and np.max(ddq[j,:,:])<=DDQ_MAX[j]):
+                ax_accc.set_ylim([np.min(ddq[j,:,:])-0.1*DDQ_MAX[j], DDQ_MAX[j]+0.1*DDQ_MAX[j]]);
+            elif (np.min(ddq[j,:,:])>=-DDQ_MAX[j] and np.max(ddq[j,:,:])<DDQ_MAX[j]):
+                ax_accc.set_ylim([-DDQ_MAX[j]-0.1*DDQ_MAX[j],np.max(ddq[j,:,:])+0.1*DDQ_MAX[j]]);
+            else:
+                ax_accc.set_ylim([-DDQ_MAX[j]-0.1*DDQ_MAX[j], DDQ_MAX[j]+0.1*DDQ_MAX[j]]);
+            #ax_acc.set_ylim([-1.1*DDQ_MAX[j], 1.1*DDQ_MAX[j]]);
+        
+            ax_accc.set_xlabel('Time [s]');
+            for nt in range(NDT):
+                line_ddq=ax_accc.step(time[:-1], ddq[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt,label='Acceleration');
+                line_ddq_des=ax_accc.step(time[:-1], ddq_des[j,:].squeeze(), 'b:', linewidth=LW,label='Acceleration');
+                if(NDT==1):
+                    line_lb_bound=ax_accc.step(time[:-1], ddq_lb[j,:,nt], 'y--',linewidth=LW/2);
+                    line_ub_bound=ax_accc.step(time[:-1], ddq_ub[j,:,nt], 'g--',linewidth=LW/2);
+            #ax_accc.set_title('Acceleration joint '+str(j));
+            #leg = ax_accc.legend([up_lim],['l']);
+            lege1=mpatches.Patch(color='orange',label='Acceleration lower bound j'+str(j));
+            lege2=mpatches.Patch(color='blue',label='Acceleration j'+str(j));
+            lege3=mpatches.Patch(color='green',label='Acceleration upper bound j'+str(j));
+            ax_accc.legend(handles=[lege1,lege3,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),
+                    bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+            #ax_accc.legend()
+            #leg.get_frame().set_alpha(0.6);            
+            plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_ACC_j'+str(j),PARAMS);
 plt.show()
     

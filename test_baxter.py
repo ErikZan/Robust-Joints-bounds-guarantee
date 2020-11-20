@@ -266,7 +266,7 @@ for j in range(7):
         f, ax = plt.subplots(3, 2, sharex=True);
         ax = ax.reshape(6);
         plut.movePlotSpines(ax[5], [0, 0]);
-        ax[5].plot(time[:-1], ddq[j,:].A.squeeze(), linewidth=LW);
+        ax[5].plot(time[:-1], ddq[j,:], linewidth=LW); # ddq[j,:].A.squeeze()
         ax[5].plot(time[:-1], ddq_lb[j,:], 'r--');
         ax[5].plot(time[:-1], ddq_ub[j,:], 'r--');
         ax[5].set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
@@ -274,7 +274,7 @@ for j in range(7):
         
         # plot velocity
         plut.movePlotSpines(ax[3], [0, 0]);
-        ax[3].plot(time, dq[j,:].A.squeeze(), linewidth=LW);
+        ax[3].plot(time, dq[j,:], linewidth=LW);
         ax[3].plot([time[0], time[-1]], [DQ_MAX[j], DQ_MAX[j]], 'r--');
         ax[3].plot([time[0], time[-1]], [-DQ_MAX[j], -DQ_MAX[j]], 'r--');
         ax[3].set_ylabel(r'$\dot{q}$ [rad/s]');
@@ -282,7 +282,7 @@ for j in range(7):
         
         # plot position
         plut.movePlotSpines(ax[1], [qMin, 0]);
-        ax[1].plot(time, q[j,:].A.squeeze(), linewidth=LW);
+        ax[1].plot(time, q[j,:], linewidth=LW);
         ax[1].plot([time[0], time[-1]], [Q_MAX[j], Q_MAX[j]], 'r--');
         ax[1].plot([time[0], time[-1]], [Q_MIN[j], Q_MIN[j]], 'r--');
         ax[1].set_ylabel(r'$q$ [rad]');
@@ -303,7 +303,7 @@ for j in range(7):
         ax.plot([qMin, qMin], [-DQ_MAX[j], +DQ_MAX[j]], 'k--');
         ax.plot([qMax, qMax], [-DQ_MAX[j], +DQ_MAX[j]], 'k--');
         # plot state-space trajectory
-        ax.plot(q[j,:].A.squeeze(), dq[j,:].A.squeeze(), 'b-', linewidth=LW);
+        ax.plot(q[j,:], dq[j,:], 'b-', linewidth=LW); #.A.squeeze()
         ax.xaxis.set_ticks([qMin, q[j,0], qMax]);
         ax.yaxis.set_ticks([-DQ_MAX[j], 0, DQ_MAX[j]]);
         ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
