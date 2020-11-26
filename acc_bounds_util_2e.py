@@ -290,6 +290,39 @@ def computeAccLimitsFromViability_2(q, dq, qMin, qMax, ddqMax, dt,E, verbose=Tru
     ddqLB = min(ddq_2, minus_dq_over_dt);
     return (ddqLB, ddqUB);
     
+# def computeAccLimitsFromViability_2(q, dq, qMin, qMax, ddqMax, dt,E, verbose=True):
+#     dt_square = dt**2;
+#     dt_dq = dt*dq;
+#     minus_dq_over_dt = -dq/dt   
+#     dt_two_dq = 2*dt_dq     +2*(dt**2)*E;
+#     two_ddqMax = 2*(ddqMax-E);
+#     dt_ddqMax_dt = (ddqMax-E)*dt_square;
+#     dq_square = (dq    +dt*E)**2;
+#     q_plus_dt_dq = q + dt_dq    +1/2*(dt**2)*E;
+    
+#     two_a = 2*dt_square;
+#     b = dt_two_dq + dt_ddqMax_dt;
+#     c = dq_square - two_ddqMax*(qMax - q_plus_dt_dq);
+#     delta = b**2 - 2*two_a*c;
+#     if(delta>=0.0):
+#         ddq_1 = (-b + np.sqrt(delta))/(two_a);
+#     else:
+#         ddq_1 = minus_dq_over_dt;
+#         if(verbose):
+#             print("Error: state (%f,%f) not viable because delta is negative: %f" % (q,dq,delta));
+    
+#     b = dt_two_dq - dt_ddqMax_dt;
+#     c = dq_square - two_ddqMax*(q_plus_dt_dq - qMin);
+#     delta = b**2 - 2*two_a*c;
+#     if(delta >= 0.0):
+#         ddq_2 = (-b - np.sqrt(delta))/(two_a);
+#     else:
+#         ddq_2 = minus_dq_over_dt;
+#         if(verbose):
+#             print("Error: state (%f,%f) not viable because delta is negative: %f" % (q,dq,delta))
+#     ddqUB = max(ddq_1, minus_dq_over_dt);
+#     ddqLB = min(ddq_2, minus_dq_over_dt);
+#     return (ddqLB, ddqUB);
         
 ''' Given the current position and velocity, the bounds of position,
     velocity and acceleration and the control time step, compute the
@@ -489,7 +522,42 @@ def computeAccLimitsFromViability_3(q, dq, qMin, qMax, ddqMax, dt,E, verbose=Tru
     ddqLB = min(ddq_2, minus_dq_over_dt);
     return (ddqLB, ddqUB);
     
-        
+    
+# def computeAccLimitsFromViability_3(q, dq, qMin, qMax, ddqMax, dt,E, verbose=True):
+#     dt_square = dt**2;
+#     dt_dq = dt*dq;
+#     minus_dq_over_dt = -dq/dt   #+E;
+#     dt_two_dq = 2*dt_dq     +2*(dt**2)*E;
+#     two_ddqMax = 2*(ddqMax-E);
+#     dt_ddqMax_dt = (ddqMax-E)*dt_square;
+#     dq_square = (dq    +dt*E)**2;
+#     q_plus_dt_dq = q + dt_dq    +1/2*(dt**2)*E;
+    
+#     two_a = 2*dt_square;
+#     b = dt_two_dq + dt_ddqMax_dt;
+#     c = dq_square - two_ddqMax*(qMax - q_plus_dt_dq);
+#     delta = b**2 - 2*two_a*c;
+#     if(delta>=0.0):
+#         ddq_1 = (-b + np.sqrt(delta))/(two_a);
+#     else:
+#         ddq_1 = minus_dq_over_dt;
+#         if(verbose):
+#             print("Error: state (%f,%f) not viable because delta is negative: %f" % (q,dq,delta));
+    
+#     b = dt_two_dq - dt_ddqMax_dt;
+#     c = dq_square - two_ddqMax*(q_plus_dt_dq - qMin);
+#     delta = b**2 - 2*two_a*c;
+#     if(delta >= 0.0):
+#         ddq_2 = (-b - np.sqrt(delta))/(two_a);
+#     else:
+#         ddq_2 = minus_dq_over_dt;
+#         if(verbose):
+#             print("Error: state (%f,%f) not viable because delta is negative: %f" % (q,dq,delta))
+#     ddqUB = max(ddq_1, minus_dq_over_dt);
+#     ddqLB = min(ddq_2, minus_dq_over_dt);
+#     return (ddqLB, ddqUB);
+
+
 ''' Given the current position and velocity, the bounds of position,
     velocity and acceleration and the control time step, compute the
     bounds of the acceleration such that all the bounds are respected

@@ -14,7 +14,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import brewer2mpl
-from acc_bounds_util_2e import isStateViable_2,isBoundsTooStrict
+from acc_bounds_util_2e import DiscreteViabilityConstraints, isStateViable_2,isBoundsTooStrict
 from acc_bounds_util_2e import computeAccLimits_2
 from acc_bounds_util_2e import computeAccLimitsFromViability_2
 from acc_bounds_util_2e import computeAccLimitsFromPosLimits_2
@@ -28,12 +28,12 @@ MAX_VEL = 2.0;
 MAX_ACC = 5.0;'''
 DT = 0.1;
 
-qMax    = 2.0;
-qMin    = -2.0;
-MAX_VEL = 1.3;
+qMax    = 0.5;
+qMin    = -0.5;
+MAX_VEL = 2.0;
 MAX_ACC = 10.0;
-E = 0.3*MAX_ACC;  
-isBoundsTooStrict(qMin,qMax,MAX_VEL,MAX_ACC,DT,E)
+E = 0.0*MAX_ACC;  
+DiscreteViabilityConstraints(qMin,qMax,MAX_VEL,MAX_ACC,DT,E)
 
 DT_SAFE = 1.01*DT;
 Q_INTERVAL = 0.002; # for plotting the range of possible angles is sampled with this step
@@ -96,8 +96,8 @@ f, ax = create_empty_figure();
 CF = ax.contourf(Q, DQ, Z_regions, 10, cmap=plt.get_cmap('Paired_r'));
 #f.colorbar(CF, ax=ax, shrink=0.9);
 ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
-#ax.set_xlabel(r'$q$');
-#ax.set_ylabel(r'$\dot{q}$');
+ax.set_xlabel(r'$q$');
+ax.set_ylabel(r'$\dot{q}$');
 ax.xaxis.set_ticks([qMin, qMax]);
 ax.yaxis.set_ticks([-MAX_VEL, 0, MAX_VEL]);
 ax.set_ylim([-MAX_VEL, MAX_VEL]);

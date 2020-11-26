@@ -73,19 +73,19 @@ PLOT_STATE_SPACE_PADOIS = False;
 PLOT_STATE_SPACE_PROBABILITY = False;
 PLOT_SIMULATION_RESULTS = True;
 TRAJECTORY = True;
-PLOT_SINGULAR = True;
-qMax    = 0.1;
-qMin    = -0.1;
+PLOT_SINGULAR = False;
+qMax    = 2.0;
+qMin    = -2.0;
 MAX_VEL = 5.0;
-MAX_ACC = 10.0;
-N_TESTS = 50;
+MAX_ACC = 10;
+N_TESTS = 300;
 DT = 0.1;
 VIABILITY_MARGIN = 1e10; # minimum margin to leave between ddq and its bounds found through viability
-E = 0.33* MAX_ACC;
+E = 0.0* MAX_ACC;
 #qMin    = qMax-DT*DT*(MAX_ACC+E)-1e-03; # Previous Value for IsBoundsTooStrict
 #qMin    = qMax - DT*DT*(MAX_ACC+2*E+(E**2)/(MAX_ACC-E))-1e-03; # Qmin minimum allowable bound for DiscreteViabilityConstraints()
-q0      =  0.0 # (qMax+qMin)/2; # center of workspace
-dq0     =  0.0;
+q0      =  1.95 # (qMax+qMin)/2; # center of workspace
+dq0     =  -4.99;
 #qMin    =1.805882353-1e-03
 
 DATE_STAMP=datetime.datetime.now().strftime("%m_%d__%H_%M_%S")
@@ -230,9 +230,9 @@ for i in range(N_TESTS):
         ddq[i]+=E*(random(1)/2-random(1)/2);
     elif(TEST_DISCRETE_VIABILITY):
         if (dq[i]<=0):
-            ddq[i]-=E;
+            ddq[i]-=E; #*(random(1)/2-random(1)/2);
         else:
-            ddq[i]+=E;
+            ddq[i]+=E; #*(random(1)/2-random(1)/2);
         
     
 
@@ -366,13 +366,13 @@ if(PLOT_STATE_SPACE):
     ax.plot(q_min_2_mid, dq_viab_neg, 'r--');
     
     # plot implicit constraints
-    t_max = np.sqrt((qMax-qMin)/(MAX_ACC-E));
+    t_max = np.sqrt((qMax-qMin)/(MAX_ACC+E));
     t = np.arange(0, t_max, 0.001);
-    q_plot = qMax - 0.5*(t**2)*(MAX_ACC-E);
-    dq_plot = -t*(MAX_ACC-E);
+    q_plot = qMax - 0.5*(t**2)*(MAX_ACC+E);
+    dq_plot = -t*(MAX_ACC+E);
     line_impl, = ax.plot(q_plot,dq_plot, 'b--');
-    q_plot = qMin + 0.5*(t**2)*(MAX_ACC-E);
-    dq_plot = t*(MAX_ACC-E);
+    q_plot = qMin + 0.5*(t**2)*(MAX_ACC+E);
+    dq_plot = t*(MAX_ACC+E);
     ax.plot(q_plot,dq_plot, 'b--');
     
     dq_viab_neg[np.where(dq_viab_neg < -MAX_VEL)[0]] = -MAX_VEL;
@@ -454,6 +454,10 @@ if(PLOT_STATE_SPACE):
     if(TRAJECTORY):
         ax.plot(q,dq,'k x');
 
+    if(TRAJECTORY == False):
+        for i in range(N_TESTS):
+            ax.plot(q[i],dq[i],'k x')
+            plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,'State_Space'+str(E)+'_'+str(i),PARAMS)
     # plot trajectory
     #ax.plot(q,dq,'k x');
 

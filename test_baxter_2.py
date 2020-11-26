@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib as mpl
 import datetime
+from plot_utils import create_empty_figure
 
 from qp_solver import qpSolver
 from acc_bounds_util_2e import computeMultiAccLimits_3,isBoundsTooStrict_Multi , DiscreteViabilityConstraints_Multi
@@ -49,13 +50,14 @@ m2q = lambda M: np.concatenate([ M.translation,se3.Quaternion(M.rotation).coeffs
 ''' PLOT-RELATED USER PARAMETERS '''
 LW = 4;     # line width
 PLOT_END_EFFECTOR_POS = True;
-PLOT_END_EFFECTOR_ACC = False;
+PLOT_END_EFFECTOR_ACC = True;
 PLOT_JOINT_POS_VEL_ACC_TAU = 0;
 Q_INTERVAL = 0.001; # the range of possible angles is sampled with this step for plotting
 PLAY_TRAJECTORY_ONLINE = False;
 PLAY_TRAJECTORY_AT_THE_END = True;
 CAPTURE_IMAGES = True;
 plut.SAVE_FIGURES = 1;
+PLOT_SINGULAR = 1;
 #plut.FIGURE_PATH = '/home/erik/Desktop/Thesis/figures/baxter/'; # old path => SaveFigurewithDire... usa GarbageFlder now
 IMAGES_FILE_NAME = 'baxter_viab_dt_2x';
 BACKGROUND_COLOR = (1.0, 1.0, 1.0, 1.0);
@@ -67,15 +69,15 @@ os.makedirs(GARBAGE_FOLDER);
 
 ''' CONTROLLER USER PARAMETERS '''
 CTRL_LAW = 'IK_QP'; #'IK_QP', 'IK'
-ACC_BOUNDS_TYPE = 'NAIVE'; #'VIAB', 'NAIVE'
+ACC_BOUNDS_TYPE = 'VIAB'; #'VIAB', 'NAIVE'
 CONSTRAIN_JOINT_TORQUES = False;
 END_EFFECTOR_NAME = 'left_w2'; #'left_w2'; left_wrist
 W_POSTURE = 1.0e-3; # 1e-3
-T = 4.0;    # total simulation time
+T = 5.0;    # total simulation time
 DT = 0.01;  # time step
 DT_SAFE =1.01*DT; # 2*DT;
-kp = 100; # 10 default , 100 improve performance with error
-kp_post = 100;
+kp = 200; # 10 default , 100 improve performance with error
+kp_post = 200;
 kd = 2*sqrt(kp);
 kd_post = 2*sqrt(kp_post);
 
@@ -336,7 +338,68 @@ for j in range(7):
         ax.set_ylabel(r'$\dot{q}$ [rad/s]');
         
         plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_j'+str(j),1);
+        # Plot without Joint space
+        f, ax = plt.subplots(3, 1, sharex=True);
+        ax = ax.reshape(3);
+        plut.movePlotSpines(ax[2], [0, 0]);
+        """ ax[5].plot(time[:-1], ddq[j,:], linewidth=LW); # ax[5].plot(time[:-1], ddq[j,:].A.squeeze(), linewidth=LW);
+        ax[5].plot(time[:-1], ddq_lb[j,:], 'o--');
+        ax[5].plot(time[:-1], ddq_ub[j,:], 'g--'); """
+        ax[2].step(time[:-1], ddq[j,:], linewidth=LW); # ax[5].plot(time[:-1], ddq[j,:].A.squeeze(), linewidth=LW);
+        ax[2].step(time[:-1], ddq_lb[j,:], 'o--',linewidth=LW);
+        ax[2].step(time[:-1], ddq_ub[j,:], 'g--',linewidth=LW);
+        #ax[5].step(time[:-1], (ddq_lb[j,:]),color='yellow', linewidth=LW);
+        ax[2].set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
+        ax[2].set_xlabel('Time [s]');
         
-
+        # plot velocity
+        plut.movePlotSpines(ax[1], [0, 0]);
+        ax[1].plot(time, dq[j,:], linewidth=LW); #.A.squeeze()
+        ax[1].plot([time[0], time[-1]], [DQ_MAX[j], DQ_MAX[j]], 'r--');
+        ax[1].plot([time[0], time[-1]], [-DQ_MAX[j], -DQ_MAX[j]], 'r--');
+        ax[1].set_ylabel(r'$\dot{q}$ [rad/s]');
+        ax[1].set_xlabel('Time [s]');
+        
+        # plot position
+        plut.movePlotSpines(ax[2], [qMin, 0]);
+        ax[0].plot(time, q[j,:], linewidth=LW); # .A.squeeze()
+        ax[0].plot([time[0], time[-1]], [Q_MAX[j], Q_MAX[j]], 'r--');
+        ax[0].plot([time[0], time[-1]], [Q_MIN[j], Q_MIN[j]], 'r--');
+        ax[0].set_ylabel(r'$q$ [rad]');
+        ax[0].set_xlabel('Time [s]');
+        plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'pva_j'+str(j),1);
+            
+        # Plot singular
+        if(PLOT_SINGULAR):
+            (f, ax_acce) = create_empty_figure(1);
+            """ ax[5].plot(time[:-1], ddq[j,:], linewidth=LW); # ax[5].plot(time[:-1], ddq[j,:].A.squeeze(), linewidth=LW);
+            ax[5].plot(time[:-1], ddq_lb[j,:], 'o--');
+            ax[5].plot(time[:-1], ddq_ub[j,:], 'g--'); """
+            ax_acce.step(time[:-1], ddq[j,:], linewidth=LW); # ax[5].plot(time[:-1], ddq[j,:].A.squeeze(), linewidth=LW);
+            ax_acce.step(time[:-1], ddq_lb[j,:], 'o--');
+            ax_acce.step(time[:-1], ddq_ub[j,:], 'g--');
+            #ax[5].step(time[:-1], (ddq_lb[j,:]),color='yellow', linewidth=LW);
+            ax_acce.set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
+            ax_acce.set_xlabel('Time [s]');
+            plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'pos_j'+str(j),1);
+            
+            # plot velocity
+            (f, ax_vel) = create_empty_figure(1);
+            ax_vel.plot(time, dq[j,:], linewidth=LW); #.A.squeeze()
+            ax_vel.plot([time[0], time[-1]], [DQ_MAX[j], DQ_MAX[j]], 'r--');
+            ax_vel.plot([time[0], time[-1]], [-DQ_MAX[j], -DQ_MAX[j]], 'r--');
+            ax_vel.set_ylabel(r'$\dot{q}$ [rad/s]');
+            ax_vel.set_xlabel('Time [s]');
+            plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'vel_j'+str(j),1);
+            
+            # plot position
+            (f, ax_pos) = create_empty_figure(1);
+            ax_pos.plot(time, q[j,:], linewidth=LW); # .A.squeeze()
+            ax_pos.plot([time[0], time[-1]], [Q_MAX[j], Q_MAX[j]], 'r--');
+            ax_pos.plot([time[0], time[-1]], [Q_MIN[j], Q_MIN[j]], 'r--');
+            ax_pos.set_ylabel(r'$q$ [rad]');
+            ax_pos.set_xlabel('Time [s]');
+            plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'acc_j'+str(j),1);
+            
 plt.show()
     

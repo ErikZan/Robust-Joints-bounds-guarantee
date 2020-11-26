@@ -5,6 +5,7 @@ Created on Tue Jun 14 11:52:00 2016
 @author: adelpret
 """
 
+from matplotlib.pyplot import axis
 import pinocchio as se3
 from pinocchio.utils import *
 from plot_utils import create_empty_figure
@@ -13,6 +14,7 @@ import numpy.matlib
 from numpy.linalg import pinv
 from math import sqrt
 from time import sleep
+from numpy.random import random
 
 import plot_utils as plut
 import matplotlib.pyplot as plt
@@ -57,7 +59,7 @@ LINE_ALPHA = 1.0;
 LEGEND_ALPHA = 1.0;
 line_styles     =["c-", "b--", "g-.", "k:", "m-"];
 PLOT_JOINT_POS_VEL_ACC = True;
-PLOT_STATE_SPACE = True;
+PLOT_STATE_SPACE = 1;
 Q_INTERVAL = 0.001; # the range of possible angles is sampled with this step for plotting
 TEST_STANDARD = 0;
 TEST_VIABILITY=1;
@@ -66,7 +68,7 @@ PLAY_TRAJECTORY_ONLINE = False;
 PLAY_TRAJECTORY_AT_THE_END = True;
 CAPTURE_IMAGES = True;
 plut.SAVE_FIGURES = True;
-PLOT_SINGULAR = True;
+PLOT_SINGULAR = 1;
 #plut.FIGURE_PATH = '/home/erik/Desktop/Thesis/figures/baxter/';
 IMAGES_FILE_NAME = 'baxter_viab_dt_2x';
 DATE_STAMP=datetime.datetime.now().strftime("%m_%d__%H_%M_%S")
@@ -76,20 +78,22 @@ os.makedirs(GARBAGE_FOLDER);
 
 ''' CONTROLLER USER PARAMETERS '''
 ACC_BOUNDS_TYPE = 'VIAB'; #'VIAB', 'NAIVE'
-T = 3.0;    # total simulation time
+T = 3000.0;    # total simulation time
 DT = 0.05;  # time step
 #DT_SAFE = np.array([2, 5, 20])*DT;
 DT_SAFE = np.array([1])*DT;
 kp = 1000; #1000
 kd = 2*sqrt(kp);
 DDQ_MAX = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
-                     12.0 ,2.0, 30.0, 30.0, 30.0, 30.0, 30.0]);
+                     12.0 ,2.0, 30.0, 30.0, 30.0, 30.0, 30.0])*0.01;
 q0 = np.array([[ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ]]).T # matrix
 Q_DES = np.array(0.5*(Q_MIN+Q_MAX)).T;
 Q_DES[0] = Q_MAX[0] + 0.5;
 Q_DES[8:] = 0.0;
-E = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
-                     .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.33; # DDQ_MAX[2]*0.3;
+# E = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
+#                      .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.33; # DDQ_MAX[2]*0.3;
+            
+E = np.concatenate((DDQ_MAX[:7],np.zeros(7)),axis=None)  *0.33  ;
 ''' END OF CONTROLLER USER PARAMETERS '''
 
 PARAMS = np.array([T,DT,DDQ_MAX])
@@ -176,13 +180,18 @@ for nt in range(NDT):
             ddq[:,t,nt]+=E;
         elif(TEST_RANDOM):
             ddq[:,t,nt]+=E*(random(1)/2-random(1)/2);
+        # elif(TEST_VIABILITY):
+        #     for k in range(14):
+        #         if(dq[k,t,nt]<=0):
+        #             ddq[k,t,nt]-=E[k];
+        #         else:
+        #             ddq[k,t,nt]+=E[k];
         elif(TEST_VIABILITY):
-            for k in range(14):
-                if(dq[k,t,nt]<=0):
-                    ddq[k,t,nt]-=E[k];
-                else:
-                    ddq[k,t,nt]+=E[k];
-                
+            tmp =dq[-7:,t,nt];
+            tmp_dq_sign= np.concatenate((np.sign(dq[:-7,t,nt]),tmp),axis=None);
+            tmp_E = E*tmp_dq_sign;
+            ddq[:,t,nt]+=tmp_E;
+            
         q[:,t+1,nt] = q[:,t,nt] + DT*dq[:,t,nt] + 0.5*DT*DT*ddq[:,t,nt];
         dq[:,t+1,nt] = dq[:,t,nt] + DT*ddq[:,t,nt];
         if(PLAY_TRAJECTORY_ONLINE):
@@ -266,7 +275,8 @@ for j in range(7):
             ax_acc.set_ylim([-DDQ_MAX[j]-0.1*DDQ_MAX[j],np.max(ddq[j,:,:])+0.1*DDQ_MAX[j]]);
         else:
             ax_acc.set_ylim([-DDQ_MAX[j]-0.1*DDQ_MAX[j], DDQ_MAX[j]+0.1*DDQ_MAX[j]]);
-        #ax_acc.set_ylim([-1.1*DDQ_MAX[j], 1.1*DDQ_MAX[j]]);
+            
+        ax_acc.set_ylim([-1.2*DDQ_MAX[j], 1.2*DDQ_MAX[j]]);
         
         ax[2].set_xlabel('Time [s]');
         for nt in range(NDT):
