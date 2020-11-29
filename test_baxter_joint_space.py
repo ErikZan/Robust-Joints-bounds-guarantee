@@ -25,7 +25,7 @@ import os
 import datetime 
 
 from qp_solver import qpSolver
-from acc_bounds_util_2e import computeMultiAccLimits_3,isBoundsTooStrict_Multi,DiscreteViabilityConstraints_Multi
+from acc_bounds_util_2e import computeMultiAccLimits,computeMultiAccLimits_3,isBoundsTooStrict_Multi,DiscreteViabilityConstraints_Multi
 from baxter_wrapper import BaxterWrapper, Q_MIN, Q_MAX, DQ_MAX, TAU_MAX, MODELPATH
                 
 def plot_bounded_joint_quantity(time, x, X_MIN, X_MAX, name, xlabel='', ylabel=''):
@@ -66,9 +66,9 @@ TEST_VIABILITY=1;
 TEST_RANDOM=0;
 PLAY_TRAJECTORY_ONLINE = False;
 PLAY_TRAJECTORY_AT_THE_END = True;
-CAPTURE_IMAGES = True;
+CAPTURE_IMAGES = False;
 plut.SAVE_FIGURES = True;
-PLOT_SINGULAR = 1;
+PLOT_SINGULAR = 0;
 #plut.FIGURE_PATH = '/home/erik/Desktop/Thesis/figures/baxter/';
 IMAGES_FILE_NAME = 'baxter_viab_dt_2x';
 DATE_STAMP=datetime.datetime.now().strftime("%m_%d__%H_%M_%S")
@@ -77,15 +77,15 @@ os.makedirs(GARBAGE_FOLDER);
 ''' END OF PLOT-RELATED USER PARAMETERS '''
 
 ''' CONTROLLER USER PARAMETERS '''
-ACC_BOUNDS_TYPE = 'VIAB'; #'VIAB', 'NAIVE'
-T = 3000.0;    # total simulation time
+ACC_BOUNDS_TYPE = 'VIAB_CLASSIC'; #'VIAB_CLASSIC','VIAB_ROBUST' 'NAIVE'
+T = 3.0;    # total simulation time
 DT = 0.05;  # time step
 #DT_SAFE = np.array([2, 5, 20])*DT;
 DT_SAFE = np.array([1])*DT;
 kp = 1000; #1000
 kd = 2*sqrt(kp);
 DDQ_MAX = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
-                     12.0 ,2.0, 30.0, 30.0, 30.0, 30.0, 30.0])*0.01;
+                     12.0 ,2.0, 30.0, 30.0, 30.0, 30.0, 30.0]);
 q0 = np.array([[ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ]]).T # matrix
 Q_DES = np.array(0.5*(Q_MIN+Q_MAX)).T;
 Q_DES[0] = Q_MAX[0] + 0.5;
@@ -136,7 +136,7 @@ for nt in range(NDT):
     for t in range(NT-1):
         ddq_des[:,t,nt] = kp*(Q_DES - q[:,t,nt]) - kd*dq[:,t,nt];
         
-        if(ACC_BOUNDS_TYPE=='VIAB'):
+        if(ACC_BOUNDS_TYPE=='VIAB_ROBUST'):
             (ddq_lb[:,t,nt], ddq_ub[:,t,nt]) = computeMultiAccLimits_3(q[:,t,nt], dq[:,t,nt], Q_MIN, Q_MAX, DQ_MAX, DDQ_MAX, DT_SAFE[nt],E);
         elif(ACC_BOUNDS_TYPE=='NAIVE'):
             for j in range(NQ):
@@ -146,7 +146,9 @@ for nt in range(NDT):
                     ddq_lb[j,t,nt] = DDQ_MAX[j];
                 if(ddq_ub[j,t,nt] < -DDQ_MAX[j]):
                     ddq_ub[j,t,nt] = -DDQ_MAX[j];
-        
+        elif (ACC_BOUNDS_TYPE=='VIAB_CLASSIC'):
+            (ddq_lb[:,t,nt], ddq_ub[:,t,nt]) = computeMultiAccLimits(q[:,t,nt], dq[:,t,nt], Q_MIN, Q_MAX, DQ_MAX, DDQ_MAX, DT_SAFE[nt]);
+            
         for j in range(NQ):
             if(ddq_des[j,t,nt] > ddq_ub[j,t,nt]):
                 ddq[j,t,nt] = ddq_ub[j,t,nt];
@@ -174,8 +176,14 @@ for nt in range(NDT):
             if ddq[j,t,nt] < -DDQ_MAX[j]:
                 ddq[j,t,nt] = -DDQ_MAX[j];
                 
-        ''' Numerical Integration '''
-        
+        '''Over the psition Limits '''
+        for s in range(7):
+            if(q[s,t,nt]>Q_MAX[s]):
+                ddq[s,t,nt] = -DDQ_MAX[s];
+            elif(q[s,t,nt]<Q_MIN[s]):
+                ddq[s,t,nt] = +DDQ_MAX[s];
+            
+        ''' Adding Disturbance '''
         if(TEST_STANDARD):
             ddq[:,t,nt]+=E;
         elif(TEST_RANDOM):
@@ -191,7 +199,9 @@ for nt in range(NDT):
             tmp_dq_sign= np.concatenate((np.sign(dq[:-7,t,nt]),tmp),axis=None);
             tmp_E = E*tmp_dq_sign;
             ddq[:,t,nt]+=tmp_E;
-            
+        
+        
+        ''' Numerical Integration '''
         q[:,t+1,nt] = q[:,t,nt] + DT*dq[:,t,nt] + 0.5*DT*DT*ddq[:,t,nt];
         dq[:,t+1,nt] = dq[:,t,nt] + DT*ddq[:,t,nt];
         if(PLAY_TRAJECTORY_ONLINE):
@@ -267,27 +277,32 @@ for j in range(7):
         ax_acc.set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
         ax_acc.yaxis.set_ticks([-DDQ_MAX[j], DDQ_MAX[j]]);
         ax_acc.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
-        if (np.min(ddq[j,:,:])<-DDQ_MAX[j] and np.max(ddq[j,:,:])>DDQ_MAX[j]):
-            ax_acc.set_ylim([np.min(ddq[j,:,:])-0.1*DDQ_MAX[j], np.max(ddq[j,:,:])+0.1*DDQ_MAX[j]]);
-        elif (np.min(ddq[j,:,:])<-DDQ_MAX[j] and np.max(ddq[j,:,:])<=DDQ_MAX[j]):
-            ax_acc.set_ylim([np.min(ddq[j,:,:])-0.1*DDQ_MAX[j], DDQ_MAX[j]+0.1*DDQ_MAX[j]]);
-        elif (np.min(ddq[j,:,:])>=-DDQ_MAX[j] and np.max(ddq[j,:,:])<DDQ_MAX[j]):
-            ax_acc.set_ylim([-DDQ_MAX[j]-0.1*DDQ_MAX[j],np.max(ddq[j,:,:])+0.1*DDQ_MAX[j]]);
-        else:
-            ax_acc.set_ylim([-DDQ_MAX[j]-0.1*DDQ_MAX[j], DDQ_MAX[j]+0.1*DDQ_MAX[j]]);
+        # if (np.min(ddq[j,:,:])<-DDQ_MAX[j] and np.max(ddq[j,:,:])>DDQ_MAX[j]):
+        #     ax_acc.set_ylim([np.min(ddq[j,:,:])-0.1*DDQ_MAX[j], np.max(ddq[j,:,:])+0.1*DDQ_MAX[j]]);
+        # elif (np.min(ddq[j,:,:])<-DDQ_MAX[j] and np.max(ddq[j,:,:])<=DDQ_MAX[j]):
+        #     ax_acc.set_ylim([np.min(ddq[j,:,:])-0.1*DDQ_MAX[j], DDQ_MAX[j]+0.1*DDQ_MAX[j]]);
+        # elif (np.min(ddq[j,:,:])>=-DDQ_MAX[j] and np.max(ddq[j,:,:])<DDQ_MAX[j]):
+        #     ax_acc.set_ylim([-DDQ_MAX[j]-0.1*DDQ_MAX[j],np.max(ddq[j,:,:])+0.1*DDQ_MAX[j]]);
+        # else:
+        #     ax_acc.set_ylim([-DDQ_MAX[j]-0.1*DDQ_MAX[j], DDQ_MAX[j]+0.1*DDQ_MAX[j]]);
             
-        ax_acc.set_ylim([-1.2*DDQ_MAX[j], 1.2*DDQ_MAX[j]]);
+        ax_acc.set_ylim([-1.4*DDQ_MAX[j], 1.4*DDQ_MAX[j]]);
         
         ax[2].set_xlabel('Time [s]');
         for nt in range(NDT):
             ax_pos.plot(time, q[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt, label=r'$\delta t=$'+str(int(DT_SAFE[nt]/DT))+'x');
             ax_vel.plot(time, dq[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt);
             ax_acc.step(time[:-1], ddq[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt);
-            ax_acc.step(time[:-1], ddq_des[j,:].squeeze(), 'b:', linewidth=LW);
+            #ax_acc.step(time[:-1], ddq_des[j,:].squeeze(), 'v:', linewidth=LW);
             if(NDT==1):
                 ax_acc.step(time[:-1], ddq_lb[j,:,nt], 'y--',linewidth=LW/2);
                 ax_acc.step(time[:-1], ddq_ub[j,:,nt], 'g--',linewidth=LW/2);
-            
+        
+        lege1=mpatches.Patch(color='orange',label='Acceleration lower bound j'+str(j));
+        lege2=mpatches.Patch(color='blue',label='Acceleration j'+str(j));
+        lege3=mpatches.Patch(color='green',label='Acceleration upper bound j'+str(j));
+        ax_acc.legend(handles=[lege1,lege3,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),
+                    bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
         # Keep the main external value as bound for plot (only graphical things)        
        
         plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_j'+str(j)+'p_vel_acc',PARAMS);

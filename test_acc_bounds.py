@@ -84,7 +84,9 @@ EPS = 1e-10;
 LW = 2;
 EPS = 1e-10;
 
-TEST_MAX_ACC = True;    # if true select always the maximum acceleration possible 
+TEST_RANDOM=0;
+TEST_DISCRETE_VIABILITY=1;
+TEST_MAX_ACC = 0;    # if true select always the maximum acceleration possible 
 TEST_MIN_ACC = False;    # if true select always the minimum acceleration possible 
 TEST_MED_ACC = False;    # if true select always the average of max and min acc
 TEST_MED_POS_ACC = True;    # if true select always the average of max and min acc imposed by pos bounds (saturated if necessary)
@@ -103,7 +105,7 @@ N_TESTS = 20;
 DT = 0.10;
 VIABILITY_MARGIN = 1e10; # minimum margin to leave between ddq and its bounds found through viability
 error_trigger = 0.0
-
+E=0.33*MAX_ACC;
 ''' State in which acc bounds from pos are stricter than acc bounds from viability '''
 #q0 = -0.086850;
 #dq0 = -0.093971;
@@ -229,6 +231,25 @@ for i in range(N_TESTS):
         ddq[i] = MAX_ACC;
     elif(ddq[i]<-MAX_ACC):
         ddq[i] = -MAX_ACC;
+        
+    if(q[i]>qMax):
+        ddq[i] = -MAX_ACC;
+    elif(q[i]<qMin):
+        ddq[i] = +MAX_ACC;
+    
+        
+    
+    if(TEST_MAX_ACC):     # if true select always the maximum acceleration possible 
+        ddq[i]+=E     
+    elif(TEST_MIN_ACC):
+        ddq[i]-=E   
+    elif(TEST_RANDOM):
+        ddq[i]+=E*(random(1)/2-random(1)/2);
+    elif(TEST_DISCRETE_VIABILITY):
+        if (dq[i]<=0):
+            ddq[i]-=E; #*(random(1)/2-random(1)/2);
+        else:
+            ddq[i]+=E; #*(random(1)/2-random(1)/2);
 
     dq[i+1] = dq[i] + DT*ddq[i];
     q[i+1]  = q[i] + DT*dq[i] + 0.5*(DT**2)*ddq[i];

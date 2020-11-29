@@ -61,12 +61,12 @@ LW = 2;
 EPS = 1e-10;
 
 # MAX and MIN are the only supported 
-TEST_DISCRETE_VIABILITY= 1 # if true when velocity is postive add the positive bound value of disturbances, when negative the negative bound value
+TEST_DISCRETE_VIABILITY= 0 # if true when velocity is postive add the positive bound value of disturbances, when negative the negative bound value
 TEST_MAX_ACC = 0;    # if true select always the maximum acceleration possible 
 TEST_MIN_ACC = 0;    # if true select always the minimum acceleration possible 
 TEST_MED_ACC = False;    # if true select always the average of max and min acc
 TEST_MED_POS_ACC = 0;    # if true select always the average of max and min acc imposed by pos bounds (saturated if necessary)
-TEST_RANDOM=0
+TEST_RANDOM=1;
 PLOT_STATE_SPACE = True;
 PLOT_STATE_SPACE_DECRE = False;
 PLOT_STATE_SPACE_PADOIS = False;
@@ -78,14 +78,14 @@ qMax    = 2.0;
 qMin    = -2.0;
 MAX_VEL = 5.0;
 MAX_ACC = 10;
-N_TESTS = 300;
+N_TESTS = 30;
 DT = 0.1;
 VIABILITY_MARGIN = 1e10; # minimum margin to leave between ddq and its bounds found through viability
-E = 0.0* MAX_ACC;
+E = 0.33* MAX_ACC;
 #qMin    = qMax-DT*DT*(MAX_ACC+E)-1e-03; # Previous Value for IsBoundsTooStrict
 #qMin    = qMax - DT*DT*(MAX_ACC+2*E+(E**2)/(MAX_ACC-E))-1e-03; # Qmin minimum allowable bound for DiscreteViabilityConstraints()
-q0      =  1.95 # (qMax+qMin)/2; # center of workspace
-dq0     =  -4.99;
+q0      = 0.0# (qMax+qMin)/2; # center of workspace
+dq0     =  4.0;
 #qMin    =1.805882353-1e-03
 
 DATE_STAMP=datetime.datetime.now().strftime("%m_%d__%H_%M_%S")
@@ -200,15 +200,29 @@ for i in range(N_TESTS):
     
     if(TEST_MAX_ACC):
         ddq[i] = ddqMaxFinal;
+        ddq[i]+=E
     elif(TEST_MIN_ACC):
         ddq[i] = ddqMinFinal;
+        ddq[i]-=E
     elif(TEST_MED_ACC):
-        ddq[i] = 0.5*(ddqMaxFinal+ddqMinFinal);
+        ddq[i] = 0.5*(ddqMaxFinal+ddqMinFinal); # Not properly implement the error : avoid
     elif(TEST_MED_POS_ACC):
-        ddq[i] = random(1)*(2*MAX_ACC) - MAX_ACC;
+        ddq[i] = random(1)*(2*MAX_ACC) - MAX_ACC; # Not properly implement the error : avoid
         if(ddqUB_viab[i]-ddq[i] < VIABILITY_MARGIN or ddq[i]-ddqLB_viab[i] < VIABILITY_MARGIN):
             print("WARNING Time %d enforcing viability margin" % i)
             ddq[i] = 0.5*(ddqUB_viab[i]+ddqLB_viab[i]);
+            
+    elif(TEST_RANDOM): # assume Max positive acceleration 
+        ddq[i] = ddqMaxFinal;
+        ddq[i]+=E*(random(1)/2-random(1)/2);
+        
+    elif(TEST_DISCRETE_VIABILITY):
+        if (dq[i]<=0):
+            ddq[i] = ddqMinFinal;
+            ddq[i]-=E; #*(random(1)/2-random(1)/2);
+        else:
+            ddq[i] = ddqMaxFinal;
+            ddq[i]+=E; #*(random(1)/2-random(1)/2);
 #        if(min(MAX_ACC,ddqUB_viab[i]) - max(-MAX_ACC,ddqLB_viab[i])>10.0):
 #            ddq[i] = random(1)*(min(MAX_ACC,ddqUB_viab[i]) - max(-MAX_ACC,ddqLB_viab[i]) - 10) + max(-MAX_ACC,ddqLB_viab[i]) + 5;
 #        else:
@@ -217,25 +231,6 @@ for i in range(N_TESTS):
     else:
         ddq[i] = random(1)*(ddqMaxFinal - ddqMinFinal) + ddqMinFinal;
     
-    if(ddq[i]>MAX_ACC):
-        ddq[i] = MAX_ACC;
-    elif(ddq[i]<-MAX_ACC):
-        ddq[i] = -MAX_ACC;
-
-    if(TEST_MAX_ACC):     # if true select always the maximum acceleration possible 
-        ddq[i]+=E     
-    elif(TEST_MIN_ACC):
-        ddq[i]-=E   
-    elif(TEST_RANDOM):
-        ddq[i]+=E*(random(1)/2-random(1)/2);
-    elif(TEST_DISCRETE_VIABILITY):
-        if (dq[i]<=0):
-            ddq[i]-=E; #*(random(1)/2-random(1)/2);
-        else:
-            ddq[i]+=E; #*(random(1)/2-random(1)/2);
-        
-    
-
     dq[i+1] = dq[i] + DT*ddq[i]                     #+ error_trigger*(DT*MAX_ACC*fraction*random(1) - DT*MAX_ACC*fraction*random(1)); # adding error;
     q[i+1]  = q[i] + DT*dq[i] + 0.5*(DT**2)*ddq[i]  #+ error_trigger*(0.5*DT**2*MAX_ACC*fraction*random(1) - 0.5*DT**2*MAX_ACC*fraction*random(1)); # adding error;
     
@@ -367,7 +362,7 @@ if(PLOT_STATE_SPACE):
     
     # plot implicit constraints
     t_max = np.sqrt((qMax-qMin)/(MAX_ACC+E));
-    t = np.arange(0, t_max, 0.001);
+    t = np.arange(0, t_max, DT ); # 0.001
     q_plot = qMax - 0.5*(t**2)*(MAX_ACC+E);
     dq_plot = -t*(MAX_ACC+E);
     line_impl, = ax.plot(q_plot,dq_plot, 'b--');
@@ -530,18 +525,24 @@ if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
     ax[2].set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
     ax[2].set_xlim([0, t[-1]]);
     if (np.min(ddq)<-MAX_ACC and np.max(ddq)>MAX_ACC):
-        ax[2].set_ylim([np.min(ddq)-0.1*MAX_ACC, np.max(ddq)+0.1*MAX_ACC]);
+        ax[2].set_ylim([np.min(ddq)-0.15*MAX_ACC, np.max(ddq)+0.15*MAX_ACC]);
     elif (np.min(ddq)<-MAX_ACC and np.max(ddq)<=MAX_ACC):
-            ax[2].set_ylim([np.min(ddq)-0.1*MAX_ACC, MAX_ACC+0.1*MAX_ACC]);
+            ax[2].set_ylim([np.min(ddq)-0.15*MAX_ACC, MAX_ACC+0.15*MAX_ACC]);
     elif (np.min(ddq)>=-MAX_ACC and np.max(ddq)<MAX_ACC):
-            ax[2].set_ylim([-MAX_ACC-0.1*MAX_ACC,np.max(ddq)+0.1*MAX_ACC]);
+            ax[2].set_ylim([-MAX_ACC-0.15*MAX_ACC,np.max(ddq)+0.15*MAX_ACC]);
     else:
-        ax[2].set_ylim([-MAX_ACC-0.1*MAX_ACC, MAX_ACC+0.1*MAX_ACC]);
+        ax[2].set_ylim([-MAX_ACC-0.15*MAX_ACC, MAX_ACC+0.15*MAX_ACC]);
         
     ax[2].yaxis.set_ticks([np.min(ddq), np.max(ddq)]);
     ax[2].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
+    lege1=mpatches.Patch(color='orange',label='Acceleration upper bound');
+    lege2=mpatches.Patch(color='blue',label='Acceleration');
+    lege3=mpatches.Patch(color='green',label='Acceleration lower bound');
+    ax[2].legend(handles=[lege1,lege3,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),
+                    bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
     #ax[0].set_title('Position')
     #plut.saveFigure('max_acc_traj_'+str(E/MAX_ACC*100)+'_'+str(int(1e3*DT))+'_ms');
+    
     plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,'max_acc',PARAMS)
     
 if(PLOT_SINGULAR):
