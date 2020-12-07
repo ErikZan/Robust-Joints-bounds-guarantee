@@ -13,15 +13,18 @@ from numpy.linalg import pinv,inv
 from math import sqrt
 from time import sleep
 
+import numpy as np
+from numpy.random import random
 import plot_utils as plut
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib as mpl
+import matplotlib.patches as mpatches
 import datetime
 from plot_utils import create_empty_figure
 
 from qp_solver import qpSolver
-from acc_bounds_util_2e import computeMultiAccLimits_3,isBoundsTooStrict_Multi , DiscreteViabilityConstraints_Multi
+from acc_bounds_util_2e import computeMultiAccLimits_3,isBoundsTooStrict_Multi , DiscreteViabilityConstraints_Multi,computeMultiAccLimits
 from baxter_wrapper import BaxterWrapper, Q_MIN, Q_MAX, DQ_MAX, TAU_MAX, MODELPATH
                 
 def plot_bounded_joint_quantity(time, x, X_MIN, X_MAX, name, xlabel='', ylabel=''):
@@ -47,17 +50,21 @@ def plot_bounded_joint_quantity(time, x, X_MIN, X_MAX, name, xlabel='', ylabel='
 q2m = lambda q: se3.SE3( se3.Quaternion(q[6,0],q[3,0],q[4,0],q[5,0]).matrix(), q[:3])
 m2q = lambda M: np.concatenate([ M.translation,se3.Quaternion(M.rotation).coeffs() ])
 
+''' TEST PARAMETERS '''
+TEST_VIABILITY=1;
+TEST_RANDOM=0;
+TEST_STANDARD=0;
 ''' PLOT-RELATED USER PARAMETERS '''
-LW = 4;     # line width
+LW = 2;     # line width
 PLOT_END_EFFECTOR_POS = True;
 PLOT_END_EFFECTOR_ACC = True;
 PLOT_JOINT_POS_VEL_ACC_TAU = 0;
 Q_INTERVAL = 0.001; # the range of possible angles is sampled with this step for plotting
 PLAY_TRAJECTORY_ONLINE = False;
 PLAY_TRAJECTORY_AT_THE_END = True;
-CAPTURE_IMAGES = True;
+CAPTURE_IMAGES = 0;
 plut.SAVE_FIGURES = 1;
-PLOT_SINGULAR = 1;
+PLOT_SINGULAR = 0;
 #plut.FIGURE_PATH = '/home/erik/Desktop/Thesis/figures/baxter/'; # old path => SaveFigurewithDire... usa GarbageFlder now
 IMAGES_FILE_NAME = 'baxter_viab_dt_2x';
 BACKGROUND_COLOR = (1.0, 1.0, 1.0, 1.0);
@@ -69,11 +76,11 @@ os.makedirs(GARBAGE_FOLDER);
 
 ''' CONTROLLER USER PARAMETERS '''
 CTRL_LAW = 'IK_QP'; #'IK_QP', 'IK'
-ACC_BOUNDS_TYPE = 'VIAB'; #'VIAB', 'NAIVE'
+ACC_BOUNDS_TYPE = 'VIAB'; #'VIAB', 'NAIVE' , 'VIAB_CLASSIC'
 CONSTRAIN_JOINT_TORQUES = False;
 END_EFFECTOR_NAME = 'left_w2'; #'left_w2'; left_wrist
 W_POSTURE = 1.0e-3; # 1e-3
-T = 5.0;    # total simulation time
+T = 4.0;    # total simulation time
 DT = 0.01;  # time step
 DT_SAFE =1.01*DT; # 2*DT;
 kp = 200; # 10 default , 100 improve performance with error
@@ -82,7 +89,7 @@ kd = 2*sqrt(kp);
 kd_post = 2*sqrt(kp_post);
 
 #x_des = np.array([[0.3, 0.30, 1.23, 0.15730328, 0.14751489, 0.48883663,  0.845301]]).T;
-x_des = np.array([[0.3, 0.3, 1.23, 0.15730328, 0.14751489, 0.48883663,  0.845301]]).T; #x_des = np.array([[0.5,  0.5 ,  1.5, -0.01354349,  0.0326968 , 0.38244455,  0.92330042]]).T;
+x_des = x_des = np.array([[0.5,  0.5 ,  1.5, -0.01354349,  0.0326968 , 0.38244455,  0.92330042]]).T; # np.array([[0.3, 0.3, 1.23, 0.15730328, 0.14751489, 0.48883663,  0.845301]]).T; #
 #DDQ_MAX = 12.0*np.ones(14);
 DDQ_MAX = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
                      12.0 ,2.0, 30.0, 30.0, 30.0, 30.0, 30.0]);
@@ -166,6 +173,8 @@ for t in range(NT-1):
     elif(CTRL_LAW=='IK_QP'):
         if(ACC_BOUNDS_TYPE=='VIAB'):
             (ddq_lb[:,t], ddq_ub[:,t]) = computeMultiAccLimits_3(q[:,t], dq[:,t], Q_MIN, Q_MAX, DQ_MAX, DDQ_MAX, DT_SAFE,E);
+        elif(ACC_BOUNDS_TYPE=='VIAB_CLASSIC'):
+            (ddq_lb[:,t], ddq_ub[:,t]) = computeMultiAccLimits(q[:,t], dq[:,t], Q_MIN, Q_MAX, DQ_MAX, DDQ_MAX, DT_SAFE,E);
         elif(ACC_BOUNDS_TYPE=='NAIVE'):
             for j in range(NQ):
                 ddq_ub[j,t] = min( DDQ_MAX[j], ( DQ_MAX[j]-dq[j,t])/DT_SAFE, 2.0*(Q_MAX[j]-q[j,t]-DT_SAFE*dq[j,t])/(DT_SAFE**2));
@@ -183,7 +192,7 @@ for t in range(NT-1):
             ddq_des = solver.solve(hess, grad, ddq_lb[:,t], ddq_ub[:,t], 1.0*MM, 1.0*b_lb, 1.0*b_ub);
         else:
             ddq_des = solver.solve(hess, grad, ddq_lb[:,t], ddq_ub[:,t]);
-        ddq[:,t] = ddq_des+E;
+        ddq[:,t] = ddq_des;
     else:
         print("Error unrecognized control law:", CTRL_LAW);
 
@@ -193,7 +202,18 @@ for t in range(NT-1):
     ddx_des[:3,t] = M.rotation@ddx_des[:3,t];
     ddx_des[3:,t] = M.rotation@ddx_des[3:,t];        
     tau[:,t] = MM@ddq[:,t] + h;
-    
+    ''' Adding Disturbance '''
+    if(TEST_STANDARD):
+        ddq[:,t]+=E;
+    elif(TEST_RANDOM):
+        ddq[:,t]+=E*(random(1)/2-random(1)/2);
+        
+    elif(TEST_VIABILITY):
+        tmp =dq[-7:,t];
+        tmp_dq_sign= np.concatenate((np.sign(dq[:-7,t]),tmp),axis=None);
+        tmp_E = E*tmp_dq_sign;
+        ddq[:,t]+=tmp_E;
+        
     ''' Numerical Integration '''
     q[:,t+1] = q[:,t] + DT*dq[:,t] + 0.5*DT*DT*ddq[:,t];
     dq[:,t+1] = dq[:,t] + DT*ddq[:,t];
@@ -226,8 +246,13 @@ if(PLOT_END_EFFECTOR_POS):
     for i in range(3):
         ax[i].plot(time, x[i,:].T, linewidth=LW);
         ax[i].plot([time[0], time[-1]], [x_des[i], x_des[i]], 'r--');
-    ax[0].legend(['Measured', 'Desired']);
+    #ax[0].legend(['Measured', 'Desired']);
+    ax[0].set_title('End-effector position',fontsize=25);
     ax[0].set_ylabel('X [m]');
+    lege10=mpatches.Patch(color='red',label='Desidered Position');
+    lege20=mpatches.Patch(color='blue',label='Measured Position');   
+    ax[0].legend(handles=[lege10,lege20], loc='upper center',bbox_to_anchor=(0.5, 1.0),
+                    bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
     ax[1].set_ylabel('Y [m]');
     ax[2].set_ylabel('Z [m]');
     ax[2].set_xlabel('Time [s]');
@@ -244,9 +269,19 @@ if(PLOT_END_EFFECTOR_POS):
 if(PLOT_END_EFFECTOR_ACC):
     f, ax = plut.create_empty_figure(3,1);
     for i in range(3):
-        ax[i].plot(time, ddx[i,:].T, 'b');
+        ax[i].plot(time, ddx[i,:].T, 'b',linewidth=LW);
         ax[i].plot(time, ddx_des[i,:].T, 'r--');
-    ax[0].set_title('End-effector acceleration');
+        ax[i].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
+    ax[0].set_ylabel(r'X [rad/s${}^2$]'); 
+    ax[1].set_ylabel(r'Y [rad/s${}^2$]');
+    ax[2].set_ylabel(r'Z [rad/s${}^2$]');
+    ax[2].set_xlabel('Time [s]');
+    ax[0].set_title('End-effector acceleration',fontsize=25);
+    lege10=mpatches.Patch(color='red',label='Desidered acceleration');
+    lege20=mpatches.Patch(color='blue',label='Applied acceleration');   
+    ax[0].legend(handles=[lege10,lege20], loc='upper center',bbox_to_anchor=(0.5, 1.0),
+                    bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+    plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_ee_acceleration',1)
 
 if(PLOT_JOINT_POS_VEL_ACC_TAU):
     plot_bounded_joint_quantity(time,        q,       Q_MIN,   Q_MAX, 'Joint positions', 'Time [s]', r'$q$ [rad]');
@@ -254,7 +289,9 @@ if(PLOT_JOINT_POS_VEL_ACC_TAU):
     plot_bounded_joint_quantity(time[:-1], ddq,  -1*DDQ_MAX, DDQ_MAX, 'Joint accelerations', 'Time [s]', r'$\ddot{q}$ [rad/s${}^2$]');
     plot_bounded_joint_quantity(time[:-1], tau,  -1*TAU_MAX, TAU_MAX, 'Joint torques', 'Time [s]', r'$\tau$ [Nm]');
 
-for j in range(7):
+#for j in range(7):
+for j in range(1):
+    
     qMax = Q_MAX[j];
     qMin = Q_MIN[j]
     qMid = 0.5*(qMin+qMax);
@@ -289,8 +326,8 @@ for j in range(7):
         ax[5].plot(time[:-1], ddq_lb[j,:], 'o--');
         ax[5].plot(time[:-1], ddq_ub[j,:], 'g--'); """
         ax[5].step(time[:-1], ddq[j,:], linewidth=LW); # ax[5].plot(time[:-1], ddq[j,:].A.squeeze(), linewidth=LW);
-        ax[5].step(time[:-1], ddq_lb[j,:], 'o--');
-        ax[5].step(time[:-1], ddq_ub[j,:], 'g--');
+        ax[5].step(time[:-1], ddq_lb[j,:], 'orange',linewidth=LW);
+        ax[5].step(time[:-1], ddq_ub[j,:], 'green',linewidth=LW);
         #ax[5].step(time[:-1], (ddq_lb[j,:]),color='yellow', linewidth=LW);
         ax[5].set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
         ax[5].set_xlabel('Time [s]');
@@ -310,6 +347,12 @@ for j in range(7):
         ax[1].plot([time[0], time[-1]], [Q_MIN[j], Q_MIN[j]], 'r--');
         ax[1].set_ylabel(r'$q$ [rad]');
         ax[1].set_xlabel('Time [s]');
+        
+        lege1=mpatches.Patch(color='orange',label='Acceleration lower bound j'+str(j));
+        lege2=mpatches.Patch(color='blue',label='Acceleration j'+str(j));
+        lege3=mpatches.Patch(color='green',label='Acceleration upper bound j'+str(j));
+        ax[5].legend(handles=[lege1,lege3,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),
+                    bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
         
         ax = plt.subplot(1, 2, 1);
         # plot viability constraints
@@ -333,7 +376,7 @@ for j in range(7):
         ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.2f'));
         ax.set_xlim([np.min(q[j,:]) -0.05*qHalf, np.max(q[j,:])+0.05*qHalf]);
         ax.set_ylim([np.min(dq[j,:])-0.05*DQ_MAX[j], np.max(dq[j,:])+0.05*DQ_MAX[j]]);
-        ax.set_title('Joint '+str(j));
+        ax.set_title('Joint '+str(j),fontsize=25);
         ax.set_xlabel(r'$q$ [rad]');
         ax.set_ylabel(r'$\dot{q}$ [rad/s]');
         
@@ -367,6 +410,13 @@ for j in range(7):
         ax[0].plot([time[0], time[-1]], [Q_MIN[j], Q_MIN[j]], 'r--');
         ax[0].set_ylabel(r'$q$ [rad]');
         ax[0].set_xlabel('Time [s]');
+        
+        lege1=mpatches.Patch(color='orange',label='Acceleration lower bound j'+str(j));
+        lege2=mpatches.Patch(color='blue',label='Acceleration j'+str(j));
+        lege3=mpatches.Patch(color='green',label='Acceleration upper bound j'+str(j));
+        ax[2].legend(handles=[lege1,lege3,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),
+                    bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+        
         plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'pva_j'+str(j),1);
             
         # Plot singular
@@ -401,5 +451,5 @@ for j in range(7):
             ax_pos.set_xlabel('Time [s]');
             plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'acc_j'+str(j),1);
             
-plt.show()
+#plt.show()
     

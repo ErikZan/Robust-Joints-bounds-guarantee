@@ -128,6 +128,18 @@ def computeAccLimitsFromViability(q, dq, qMin, qMax, ddqMax, dt, verbose=True):
 '''
 def computeAccLimits(q, dq, qMin, qMax, dqMax, ddqMax, dt, verbose=True, ddqStop=None):
     viabViol = isStateViable(q, dq, qMin, qMax, dqMax, ddqMax);
+    if (viabViol>0):
+        if ((dq>0.0 and q>qMin) or q>qMax):
+            ddqUBFinal = -ddqMax;
+            ddqLBFinal = -ddqMax;
+        else:
+            #((dq<0.0 and q<qMax) or  q<qMin):
+            ddqUBFinal = ddqMax;
+            ddqLBFinal = ddqMax;
+       
+            
+        return (ddqLBFinal,ddqUBFinal);
+    
     if(viabViol>EPS and verbose):
         print("WARNING: specified state (q=%f dq=%f) is not viable (violation %f)" % (q,dq,viabViol));
         
@@ -160,15 +172,24 @@ def computeAccLimits(q, dq, qMin, qMax, dqMax, ddqMax, dt, verbose=True, ddqStop
     
     # In case of conflict give priority to position bounds
     if(ddqUBFinal<ddqLBFinal):
+        print('Check if viability vialiotion')
         if(verbose and ddqUBFinal<ddqLBFinal-EPS):
             print("Conflict between acc bounds min %f>max %f (min-max=%f)" % (ddqLBFinal,ddqUBFinal, ddqLBFinal-ddqUBFinal));
             print("(q,dq) = ", q, dq);
             print("ddqLB (pos,vel,viab,acc): ", ddqLB);
             print("ddqUB (pos,vel,viab,acc): ", ddqUB);
-        if(ddqUBFinal==ddqUB[0]):
-            ddqLBFinal = ddqUBFinal;
+            
+        # if(ddqUBFinal==ddqUB[0]):
+        #     ddqLBFinal = ddqUBFinal;
+        # else:
+        #     ddqUBFinal = ddqLBFinal;
+        if (dq>0.0):
+            ddqUBFinal = -ddqMax;
+            ddqLBFinal = -ddqMax;
         else:
-            ddqUBFinal = ddqLBFinal;
+            ddqUBFinal = ddqMax;
+            ddqLBFinal = ddqMax;
+            
         if(verbose and ddqUBFinal<ddqLBFinal-EPS):
             print("                     New bounds are ddqMin %f ddqMax %f" % (ddqLBFinal,ddqUBFinal));
         
@@ -333,6 +354,14 @@ def computeAccLimitsFromViability_2(q, dq, qMin, qMax, ddqMax, dt,E, verbose=Tru
 '''
 def computeAccLimits_2(q, dq, qMin, qMax, dqMax, ddqMax, dt,E, verbose=True, ddqStop=None):
     viabViol = isStateViable_2(q, dq, qMin, qMax, dqMax, ddqMax,E);
+    if (viabViol>0):
+        if ((dq>0.0 and q>qMin) or q>qMax):
+            ddqUBFinal = -ddqMax;
+            ddqLBFinal = -ddqMax;
+        else:
+            #((dq<0.0 and q<qMax) or  q<qMin):
+            ddqUBFinal = ddqMax;
+            ddqLBFinal = ddqMax;
     if(viabViol>EPS and verbose):
         print("WARNING: specified state (q=%f dq=%f) is not viable (violation %f)" % (q,dq,viabViol));
         
@@ -567,6 +596,14 @@ def computeAccLimitsFromViability_3(q, dq, qMin, qMax, ddqMax, dt,E, verbose=Tru
 '''
 def computeAccLimits_3(q, dq, qMin, qMax, dqMax, ddqMax, dt,E, verbose=True, ddqStop=None):
     viabViol = isStateViable_3(q, dq, qMin, qMax, dqMax, ddqMax,E);
+    # if (viabViol>0):
+    #     if ((dq>0.0 and q>qMin) or q>qMax):
+    #         ddqUBFinal = -ddqMax;
+    #         ddqLBFinal = -ddqMax;
+    #     else:
+    #         #((dq<0.0 and q<qMax) or  q<qMin):
+    #         ddqUBFinal = ddqMax;
+    #         ddqLBFinal = ddqMax;
     if(viabViol>EPS and verbose):
         print("WARNING: specified state (q=%f dq=%f) is not viable (violation %f)" % (q,dq,viabViol));
         
@@ -608,10 +645,17 @@ def computeAccLimits_3(q, dq, qMin, qMax, dqMax, ddqMax, dt,E, verbose=True, ddq
             print("(q,dq) = ", q, dq);
             print("ddqLB (pos,vel,viab,acc): ", ddqLB);
             print("ddqUB (pos,vel,viab,acc): ", ddqUB);
-        if(ddqUBFinal==ddqUB[0]):
-            ddqLBFinal = ddqUBFinal;
+        # if(ddqUBFinal==ddqUB[0]):
+        #     ddqLBFinal = ddqUBFinal;
+        # else:
+        #     ddqUBFinal = ddqLBFinal;
+        if (dq>0.0):
+            ddqUBFinal = -ddqMax;
+            ddqLBFinal = -ddqMax;
         else:
-            ddqUBFinal = ddqLBFinal;
+            ddqUBFinal = ddqMax;
+            ddqLBFinal = ddqMax;
+            
         if(verbose and ddqUBFinal<ddqLBFinal-EPS):
             print("                     New bounds are ddqMin %f ddqMax %f" % (ddqLBFinal,ddqUBFinal));
         

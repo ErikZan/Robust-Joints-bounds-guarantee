@@ -77,7 +77,7 @@ os.makedirs(GARBAGE_FOLDER);
 ''' END OF PLOT-RELATED USER PARAMETERS '''
 
 ''' CONTROLLER USER PARAMETERS '''
-ACC_BOUNDS_TYPE = 'VIAB_CLASSIC'; #'VIAB_CLASSIC','VIAB_ROBUST' 'NAIVE'
+ACC_BOUNDS_TYPE = 'NAIVE'; #'VIAB_CLASSIC','VIAB_ROBUST' 'NAIVE'
 T = 3.0;    # total simulation time
 DT = 0.05;  # time step
 #DT_SAFE = np.array([2, 5, 20])*DT;
@@ -89,6 +89,9 @@ DDQ_MAX = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,
 q0 = np.array([[ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ]]).T # matrix
 Q_DES = np.array(0.5*(Q_MIN+Q_MAX)).T;
 Q_DES[0] = Q_MAX[0] + 0.5;
+# Only the first joint have a limit over its bound
+# Q_DES[1] = Q_MAX[1] + 0.5;
+# Q_DES[2] = Q_MAX[2] + 0.5;
 Q_DES[8:] = 0.0;
 # E = np.array([ 12.0, 2.0, 30.0, 30.0, 30.0, 30.0, 30.0,     
 #                      .0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0])*0.33; # DDQ_MAX[2]*0.3;
@@ -135,13 +138,23 @@ for nt in range(NDT):
     q[:,0,nt] = q0.squeeze();
     for t in range(NT-1):
         ddq_des[:,t,nt] = kp*(Q_DES - q[:,t,nt]) - kd*dq[:,t,nt];
-        
+        if(TEST_VIABILITY==1):
+            for iii in range(7):
+                if (dq[iii,t,nt]<=0):
+                    ddq_des[iii,t,nt] = -DDQ_MAX[iii]; #*(random(1)/2-random(1)/2);
+                else:
+                    ddq_des[iii,t,nt] = DDQ_MAX[iii];
+        else:
+            ddq_des[:,t,nt] = kp*(Q_DES - q[:,t,nt]) - kd*dq[:,t,nt];
+            
         if(ACC_BOUNDS_TYPE=='VIAB_ROBUST'):
             (ddq_lb[:,t,nt], ddq_ub[:,t,nt]) = computeMultiAccLimits_3(q[:,t,nt], dq[:,t,nt], Q_MIN, Q_MAX, DQ_MAX, DDQ_MAX, DT_SAFE[nt],E);
         elif(ACC_BOUNDS_TYPE=='NAIVE'):
             for j in range(NQ):
                 ddq_ub[j,t,nt] = min( DDQ_MAX[j], ( DQ_MAX[j]-dq[j,t,nt])/DT_SAFE[nt], 2.0*(Q_MAX[j]-q[j,t,nt]-DT_SAFE[nt]*dq[j,t,nt])/(DT_SAFE[nt]**2));
                 ddq_lb[j,t,nt] = max(-DDQ_MAX[j], (-DQ_MAX[j]-dq[j,t,nt])/DT_SAFE[nt], 2.0*(Q_MIN[j]-q[j,t,nt]-DT_SAFE[nt]*dq[j,t,nt])/(DT_SAFE[nt]**2));
+                # ddq_ub[j,t,nt] = min( DDQ_MAX[j], ( DQ_MAX[j]-dq[j,t,nt])/DT, 2.0*(Q_MAX[j]-q[j,t,nt]-DT*dq[j,t,nt])/(DT**2));
+                # ddq_lb[j,t,nt] = max(-DDQ_MAX[j], (-DQ_MAX[j]-dq[j,t,nt])/DT, 2.0*(Q_MIN[j]-q[j,t,nt]-DT*dq[j,t,nt])/(DT**2));
                 if(ddq_lb[j,t,nt] > DDQ_MAX[j]):
                     ddq_lb[j,t,nt] = DDQ_MAX[j];
                 if(ddq_ub[j,t,nt] < -DDQ_MAX[j]):
@@ -177,11 +190,11 @@ for nt in range(NDT):
                 ddq[j,t,nt] = -DDQ_MAX[j];
                 
         '''Over the psition Limits '''
-        for s in range(7):
-            if(q[s,t,nt]>Q_MAX[s]):
-                ddq[s,t,nt] = -DDQ_MAX[s];
-            elif(q[s,t,nt]<Q_MIN[s]):
-                ddq[s,t,nt] = +DDQ_MAX[s];
+        # for s in range(7):
+        #     if(q[s,t,nt]>Q_MAX[s]):
+        #         ddq[s,t,nt] = -DDQ_MAX[s];
+        #     elif(q[s,t,nt]<Q_MIN[s]):
+        #         ddq[s,t,nt] = +DDQ_MAX[s];
             
         ''' Adding Disturbance '''
         if(TEST_STANDARD):

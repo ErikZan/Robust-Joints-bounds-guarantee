@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import brewer2mpl
 from acc_bounds_util_2e import isStateViable_2,isBoundsTooStrict,DiscreteViabilityConstraints
-from acc_bounds_util_2e import computeAccLimits_2
-from acc_bounds_util_2e import computeAccLimitsFromViability_2
+from acc_bounds_util_2e import computeAccLimits_2,computeAccLimits
+from acc_bounds_util_2e import computeAccLimitsFromViability_2,computeAccLimitsFromViability
 from acc_bounds_util_2e import computeAccLimitsFromPosLimits_2
 from inequalities_probability import InequalitiesProbability
 import sys
@@ -61,7 +61,8 @@ LW = 2;
 EPS = 1e-10;
 
 # MAX and MIN are the only supported 
-TEST_DISCRETE_VIABILITY= 0 # if true when velocity is postive add the positive bound value of disturbances, when negative the negative bound value
+TEST_MODE = 'VIAB_CLASSIC' # VIAB_ROBUST  VIAB_CLASSIC
+TEST_DISCRETE_VIABILITY= 0# if true when velocity is postive add the positive bound value of disturbances, when negative the negative bound value
 TEST_MAX_ACC = 0;    # if true select always the maximum acceleration possible 
 TEST_MIN_ACC = 0;    # if true select always the minimum acceleration possible 
 TEST_MED_ACC = False;    # if true select always the average of max and min acc
@@ -72,7 +73,7 @@ PLOT_STATE_SPACE_DECRE = False;
 PLOT_STATE_SPACE_PADOIS = False;
 PLOT_STATE_SPACE_PROBABILITY = False;
 PLOT_SIMULATION_RESULTS = True;
-TRAJECTORY = True;
+TRAJECTORY = False; # 'SAVE_EACH' 
 PLOT_SINGULAR = False;
 qMax    = 2.0;
 qMin    = -2.0;
@@ -85,7 +86,7 @@ E = 0.33* MAX_ACC;
 #qMin    = qMax-DT*DT*(MAX_ACC+E)-1e-03; # Previous Value for IsBoundsTooStrict
 #qMin    = qMax - DT*DT*(MAX_ACC+2*E+(E**2)/(MAX_ACC-E))-1e-03; # Qmin minimum allowable bound for DiscreteViabilityConstraints()
 q0      = 0.0# (qMax+qMin)/2; # center of workspace
-dq0     =  4.0;
+dq0     =  0.0;
 #qMin    =1.805882353-1e-03
 
 DATE_STAMP=datetime.datetime.now().strftime("%m_%d__%H_%M_%S")
@@ -159,7 +160,14 @@ for i in range(N_TESTS):
             if(q_zero_vel<qMin-EPS):
                 print("ERROR Time %d, lower position limits violated q=%f, qMin=%f" % (i,q_zero_vel,qMin));
         
-    (ddqMinFinal, ddqMaxFinal) = computeAccLimits_2(q[i], dq[i], qMin, qMax, MAX_VEL, MAX_ACC, DT_SAFE,E);
+    if(TEST_MODE=='VIAB_CLASSIC'):
+        (ddqMinFinal, ddqMaxFinal) = computeAccLimits(q[i], dq[i], qMin, qMax, MAX_VEL, MAX_ACC, DT_SAFE);
+    elif(TEST_MODE=='VIAB_ROBUST'):
+        (ddqMinFinal, ddqMaxFinal) = computeAccLimits_2(q[i], dq[i], qMin, qMax, MAX_VEL, MAX_ACC, DT_SAFE,E);
+    else:
+        print('NOT AVAIBLE TEST MODE');   
+        
+    #(ddqMinFinal, ddqMaxFinal) = computeAccLimits_2(q[i], dq[i], qMin, qMax, MAX_VEL, MAX_ACC, DT_SAFE,E);
     ddqLB[i] = ddqMinFinal;
     ddqUB[i] = ddqMaxFinal;
     
@@ -196,8 +204,13 @@ for i in range(N_TESTS):
     if(ddqMaxFinal<ddqMinFinal-EPS):
         print("ERROR Time %d infeasible constraints: min=%f, max=%f" % (i, ddqMinFinal, ddqMaxFinal));
         
-    (ddqLB_viab[i],ddqUB_viab[i]) = computeAccLimitsFromViability_2(q[i], dq[i], qMin, qMax, MAX_ACC, DT,E);
-    
+    if(TEST_MODE=='VIAB_CLASSIC'):
+        (ddqLB_viab[i],ddqUB_viab[i]) = computeAccLimitsFromViability(q[i], dq[i], qMin, qMax, MAX_ACC, DT);
+    elif(TEST_MODE=='VIAB_ROBUST'):
+        (ddqLB_viab[i],ddqUB_viab[i]) = computeAccLimitsFromViability_2(q[i], dq[i], qMin, qMax, MAX_ACC, DT,E);
+    else:
+        print('NOT AVAIBLE TEST MODE');
+        
     if(TEST_MAX_ACC):
         ddq[i] = ddqMaxFinal;
         ddq[i]+=E
@@ -355,25 +368,30 @@ if(PLOT_STATE_SPACE):
     qMid = 0.5*(qMin+qMax);
     q_mid_2_max = np.arange(qMid, qMax+Q_INTERVAL, Q_INTERVAL);
     dq_viab_pos = np.sqrt(np.max([np.zeros(q_mid_2_max.shape),2*(MAX_ACC-E)*(qMax-q_mid_2_max)],0)); #MAX_ACC => (MAX_ACC-E)
-    line_viab, = ax.plot(q_mid_2_max, dq_viab_pos, 'r--');
+    line_viab, = ax.plot(q_mid_2_max, dq_viab_pos, 'y--');
     q_min_2_mid = np.arange(qMid, qMin-Q_INTERVAL, -Q_INTERVAL);
     dq_viab_neg = -np.sqrt(np.max([np.zeros(q_min_2_mid.shape),2*(MAX_ACC-E)*(q_min_2_mid-qMin)],0));
-    ax.plot(q_min_2_mid, dq_viab_neg, 'r--');
+    ax.plot(q_min_2_mid, dq_viab_neg, 'y--');
     
     # plot implicit constraints
     t_max = np.sqrt((qMax-qMin)/(MAX_ACC+E));
-    t = np.arange(0, t_max, DT ); # 0.001
+    t = np.arange(0, t_max, DT); # 0.001
     q_plot = qMax - 0.5*(t**2)*(MAX_ACC+E);
+    #q_plot = qMax - 0.5*(q_min_2_mid**2)*(MAX_ACC+E);
     dq_plot = -t*(MAX_ACC+E);
-    line_impl, = ax.plot(q_plot,dq_plot, 'b--');
+    line_impl, = ax.plot(q_plot,dq_plot, 'g--');
     q_plot = qMin + 0.5*(t**2)*(MAX_ACC+E);
     dq_plot = t*(MAX_ACC+E);
-    ax.plot(q_plot,dq_plot, 'b--');
+    ax.plot(q_plot,dq_plot, 'g--');
     
     dq_viab_neg[np.where(dq_viab_neg < -MAX_VEL)[0]] = -MAX_VEL;
     dq_viab_pos[np.where(dq_viab_pos >  MAX_VEL)[0]] =  MAX_VEL;
-    ax.fill_between(q_min_2_mid, dq_viab_neg, -1.0*dq_viab_neg, alpha=0.25, linewidth=0, facecolor='green');
+    ax.fill_between(q_min_2_mid, dq_viab_neg,-1.0*dq_viab_neg, alpha=0.25, linewidth=0, facecolor='green');
     ax.fill_between(q_mid_2_max, -1.0*dq_viab_pos, dq_viab_pos, alpha=0.25, linewidth=0, facecolor='green');
+    
+    
+    ax.fill_between(q_min_2_mid, qMax - 0.5*((q_min_2_mid-qMin)**2)*(MAX_ACC+E),0, alpha=0.25, linewidth=0, facecolor='green');
+    ax.fill_between(q_min_2_mid, dq_viab_neg,-1.0*dq_viab_neg, alpha=0.25, linewidth=0, facecolor='green');
     
     # plot velocity bounds
     line_vel, = ax.plot([qMin, qMax], [MAX_VEL, MAX_VEL], 'k--');
@@ -439,8 +457,8 @@ if(PLOT_STATE_SPACE):
                 bbox_to_anchor=(-0.1, 1.02, 1.2, .102), loc=2, ncol=3, mode="expand", borderaxespad=0.);
     else:
         leg = ax.legend([line_viab, line_impl, line_pos],
-                ['Viability', 
-                'Implicit pos-acc', 
+                ['Robust Viability', 
+                'Robust Implicit pos-acc', 
                 'Pos-vel bounds'],
                 bbox_to_anchor=(-0.1, 1.02, 1.2, .102), loc=2, ncol=3, mode="expand", borderaxespad=0.);
     leg.get_frame().set_alpha(0.6);
@@ -449,7 +467,7 @@ if(PLOT_STATE_SPACE):
     if(TRAJECTORY):
         ax.plot(q,dq,'k x');
 
-    if(TRAJECTORY == False):
+    if(TRAJECTORY == 'SAVE_EACH'):
         for i in range(N_TESTS):
             ax.plot(q[i],dq[i],'k x')
             plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,'State_Space'+str(E)+'_'+str(i),PARAMS)
@@ -497,6 +515,8 @@ if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
     ax[0].set_ylim([np.min(q_small)-0.1, np.max(q_small)+0.1]);
     ax[0].yaxis.set_ticks([np.min(q_small), np.max(q_small)]);
     ax[0].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
+    # to view view zoom
+    #ax[0].set_ylim([qMax-0.025*qMax, qMax+0.025*qMax])
     
     #print 't', t.shape, 'dq', dq.shape;
     ax[1].plot(t, dq, linewidth=LW);
@@ -504,7 +524,7 @@ if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
     ax[1].plot([0, t[-1]], [-MAX_VEL, -MAX_VEL], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
     ax[1].set_ylim([np.min(dq)-0.1*MAX_VEL, np.max(dq)+0.1*MAX_VEL]);
     if(np.max(dq)>0.0 and np.min(dq)<0):
-        ax[1].yaxis.set_ticks([np.min(dq), 0, np.max(dq)]);
+        ax[1].yaxis.set_ticks([np.min(dq), np.max(dq)]);
     else:        
         ax[1].yaxis.set_ticks([np.min(dq), np.max(dq)]);
     ax[1].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
