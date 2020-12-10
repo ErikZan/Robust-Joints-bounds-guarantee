@@ -51,8 +51,8 @@ q2m = lambda q: se3.SE3( se3.Quaternion(q[6,0],q[3,0],q[4,0],q[5,0]).matrix(), q
 m2q = lambda M: np.concatenate([ M.translation,se3.Quaternion(M.rotation).coeffs() ])
 
 ''' TEST PARAMETERS '''
-TEST_VIABILITY=1;
-TEST_RANDOM=0;
+TEST_VIABILITY=0;
+TEST_RANDOM=1;
 TEST_STANDARD=0;
 ''' PLOT-RELATED USER PARAMETERS '''
 LW = 2;     # line width
@@ -83,8 +83,8 @@ W_POSTURE = 1.0e-3; # 1e-3
 T = 4.0;    # total simulation time
 DT = 0.01;  # time step
 DT_SAFE =1.01*DT; # 2*DT;
-kp = 200; # 10 default , 100 improve performance with error
-kp_post = 200;
+kp = 10; # 10 default , 100 improve performance with error
+kp_post = 10;
 kd = 2*sqrt(kp);
 kd_post = 2*sqrt(kp_post);
 

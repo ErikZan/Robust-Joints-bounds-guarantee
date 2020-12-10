@@ -61,7 +61,7 @@ LW = 2;
 EPS = 1e-10;
 
 # MAX and MIN are the only supported 
-TEST_MODE = 'VIAB_CLASSIC' # VIAB_ROBUST  VIAB_CLASSIC
+TEST_MODE = 'VIAB_ROBUST' # VIAB_ROBUST  VIAB_CLASSIC
 TEST_DISCRETE_VIABILITY= 0# if true when velocity is postive add the positive bound value of disturbances, when negative the negative bound value
 TEST_MAX_ACC = 0;    # if true select always the maximum acceleration possible 
 TEST_MIN_ACC = 0;    # if true select always the minimum acceleration possible 
@@ -365,34 +365,76 @@ if(PLOT_STATE_SPACE):
     (f,ax) = create_empty_figure(1,1, [0,0]);
 
     # plot viability constraints
+    # case without error
     qMid = 0.5*(qMin+qMax);
     q_mid_2_max = np.arange(qMid, qMax+Q_INTERVAL, Q_INTERVAL);
-    dq_viab_pos = np.sqrt(np.max([np.zeros(q_mid_2_max.shape),2*(MAX_ACC-E)*(qMax-q_mid_2_max)],0)); #MAX_ACC => (MAX_ACC-E)
-    line_viab, = ax.plot(q_mid_2_max, dq_viab_pos, 'y--');
+    dq_viab_pos = np.sqrt(np.max([np.zeros(q_mid_2_max.shape),2*(MAX_ACC)*(qMax-q_mid_2_max)],0)); #MAX_ACC => (MAX_ACC-E)
+    line_viab, = ax.plot(q_mid_2_max, dq_viab_pos, 'r--');
     q_min_2_mid = np.arange(qMid, qMin-Q_INTERVAL, -Q_INTERVAL);
-    dq_viab_neg = -np.sqrt(np.max([np.zeros(q_min_2_mid.shape),2*(MAX_ACC-E)*(q_min_2_mid-qMin)],0));
-    ax.plot(q_min_2_mid, dq_viab_neg, 'y--');
+    dq_viab_neg = -np.sqrt(np.max([np.zeros(q_min_2_mid.shape),2*(MAX_ACC)*(q_min_2_mid-qMin)],0));
+    ax.plot(q_min_2_mid, dq_viab_neg, 'r--');
+    # case with error
+    qMid = 0.5*(qMin+qMax);
+    q_mid_2_maxE = np.arange(qMid, qMax+Q_INTERVAL, Q_INTERVAL);
+    dq_viab_posE = np.sqrt(np.max([np.zeros(q_mid_2_maxE.shape),2*(MAX_ACC-E)*(qMax-q_mid_2_maxE)],0)); #MAX_ACC => (MAX_ACC-E)
+    line_viabE, = ax.plot(q_mid_2_maxE, dq_viab_posE, 'y--');
+    #ax.plot(q_mid_2_maxE, -dq_viab_posE, 'b--');
+    q_min_2_midE = np.arange(qMid, qMin-Q_INTERVAL, -Q_INTERVAL);
+    dq_viab_negE = -np.sqrt(np.max([np.zeros(q_min_2_midE.shape),2*(MAX_ACC-E)*(q_min_2_midE-qMin)],0));
+    ax.plot(q_min_2_midE, dq_viab_negE, 'y--');
+    #ax.plot(q_min_2_midE, -dq_viab_negE, 'b--');
     
     # plot implicit constraints
     t_max = np.sqrt((qMax-qMin)/(MAX_ACC+E));
-    t = np.arange(0, t_max, DT); # 0.001
+    #t_max = 5;
+    t_use_plot= np.sqrt(-qMax/(- 0.5**(MAX_ACC+E))) ;
+    #t = np.arange(0, t_max, DT); # 0.001
+    t = np.arange(0, t_max,  0.001); # 0.001
+    q_plot = qMax - 0.5*(t**2)*(MAX_ACC);
+    dq_plot = -t*(MAX_ACC);
+    
+    t = np.arange(0, t_use_plot,  0.001); # 0.001
+    line_impl, = ax.plot(q_plot,dq_plot, 'c--');
+    line_impl, = ax.plot(-q_plot,-dq_plot, 'c--');
+    qplota1 = np.zeros(t.size)
+    dqplota1 = np.zeros(t.size)
+    qplota2 = np.zeros(t.size)
+    dqplota2 = np.zeros(t.size)
+    
     q_plot = qMax - 0.5*(t**2)*(MAX_ACC+E);
     #q_plot = qMax - 0.5*(q_min_2_mid**2)*(MAX_ACC+E);
     dq_plot = -t*(MAX_ACC+E);
-    line_impl, = ax.plot(q_plot,dq_plot, 'g--');
+    line_implE, = ax.plot(q_plot,dq_plot, 'g--');
+    
+    
+    for i in range(t.size):
+        qplota1[i]= qMax - 0.5*(t[i]**2)*(MAX_ACC+E);
+        dqplota1[i] = -t[i]*(MAX_ACC+E)
+    qdqplotf1=ax.plot(qplota1,dqplota1,'g--')
+    
     q_plot = qMin + 0.5*(t**2)*(MAX_ACC+E);
     dq_plot = t*(MAX_ACC+E);
     ax.plot(q_plot,dq_plot, 'g--');
     
+    for i in range(t.size):
+        qplota2[i]= qMax - 0.5*(t[i]**2)*(MAX_ACC+E);
+        dqplota2[i] = -t[i]*(MAX_ACC+E)
+    #qdqplotf2=ax.plot(qplota2,dqplota2)
+    
     dq_viab_neg[np.where(dq_viab_neg < -MAX_VEL)[0]] = -MAX_VEL;
     dq_viab_pos[np.where(dq_viab_pos >  MAX_VEL)[0]] =  MAX_VEL;
-    ax.fill_between(q_min_2_mid, dq_viab_neg,-1.0*dq_viab_neg, alpha=0.25, linewidth=0, facecolor='green');
-    ax.fill_between(q_mid_2_max, -1.0*dq_viab_pos, dq_viab_pos, alpha=0.25, linewidth=0, facecolor='green');
+    ax.fill_between(q_min_2_mid, dq_viab_neg,-dq_viab_neg, alpha=0.25, linewidth=0, facecolor='green');
+    ax.fill_between(q_mid_2_max, -dq_viab_pos, dq_viab_pos, alpha=0.25, linewidth=0, facecolor='green'); # -1.0*dq_viab_pos
     
     
-    ax.fill_between(q_min_2_mid, qMax - 0.5*((q_min_2_mid-qMin)**2)*(MAX_ACC+E),0, alpha=0.25, linewidth=0, facecolor='green');
-    ax.fill_between(q_min_2_mid, dq_viab_neg,-1.0*dq_viab_neg, alpha=0.25, linewidth=0, facecolor='green');
-    
+    ax.fill_between(q_min_2_midE, dq_viab_negE,0, alpha=0.25, linewidth=0, facecolor='green');
+    ax.fill_between(q_mid_2_maxE, 0, dq_viab_posE, alpha=0.25, linewidth=0, facecolor='green'); # -1.0*dq_viab_pos
+    #dq_plot_2= np.sqrt(2*(q_plot -qMin)/(MAX_ACC+E))*(MAX_ACC+E);
+    #ax.fill_between(q_min_2_mid,0, q_min_2_mid, alpha=0.25, linewidth=0, facecolor='green');
+    ax.fill_between(q_min_2_mid, dq_viab_neg,0, alpha=0., linewidth=0, facecolor='green');
+    ax.fill_between(q_mid_2_max, 0, dq_viab_pos, alpha=0., linewidth=0, facecolor='green'); # -1.0*dq_viab_pos
+    ax.fill_between(qplota1, dqplota1,0,where = (qplota1 > 0),alpha=0.25, linewidth=0, facecolor='green'); # ,where =  (dqplota1 >= -2*MAX_VEL ) & (qplota1 > -0.0) # 
+    ax.fill_between(-qplota2, -dqplota2,0,where = (-qplota2 < 0),alpha=0.25, linewidth=0, facecolor='green'); # ,where =  (dqplota1 >= -2*MAX_VEL ) & (qplota1 > -0.0) # 
     # plot velocity bounds
     line_vel, = ax.plot([qMin, qMax], [MAX_VEL, MAX_VEL], 'k--');
     ax.plot([qMin, qMax], [-MAX_VEL, -MAX_VEL], 'k--');
@@ -456,11 +498,20 @@ if(PLOT_STATE_SPACE):
                 'Pos-vel bounds'],
                 bbox_to_anchor=(-0.1, 1.02, 1.2, .102), loc=2, ncol=3, mode="expand", borderaxespad=0.);
     else:
-        leg = ax.legend([line_viab, line_impl, line_pos],
+        leg = ax.legend([line_viabE, line_impl,line_viab,line_implE, line_pos], # , line_pos
                 ['Robust Viability', 
-                'Robust Implicit pos-acc', 
-                'Pos-vel bounds'],
-                bbox_to_anchor=(-0.1, 1.02, 1.2, .102), loc=2, ncol=3, mode="expand", borderaxespad=0.);
+                'Robust Implicit pos-acc','Viability','Implicit pos-acc','Pos-vel bounds'], #, 
+                
+                bbox_to_anchor=(-0.1, 1.02, 1.2, .102), loc=2, ncol=3, mode="expand", borderaxespad=0.
+                
+                );
+        lege1=mpatches.Patch(color='cyan',label='Implicit pos-acc');
+        lege2=mpatches.Patch(color='red',label='Viability');
+        lege3=mpatches.Patch(color='black',label='Pos-vel bounds');
+        lege4=mpatches.Patch(color='yellow',label='Viability Robust');
+        lege5=mpatches.Patch(color='green',label='Implicit pos-acc Robust');
+        ax.legend(handles=[lege1,lege2,lege3,lege4,lege5], loc='upper center',bbox_to_anchor=(0.5, 1.0),
+                    bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
     leg.get_frame().set_alpha(0.6);
     
     
