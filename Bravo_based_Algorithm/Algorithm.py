@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from Bravo_based_Algorithm.Functions import  rejected_point,compute_torque, remove_old_add_new, remove_old_add_new_if_P,Approved_point
+from Bravo_based_Algorithm.Functions import  Approved_point_2, rejected_point,compute_torque,Approved_point, rejected_point_2
 import pinocchio as se3
 from pinocchio.utils import *
 import os
@@ -36,8 +36,8 @@ dt=0.05;
 M=1.5;
 g=9.81;
 l=1.5;
-tau_max=50;
-tau_min=-50;
+tau_max=40;
+tau_min=-40;
 
 # definition of the initial omega
 
@@ -50,6 +50,10 @@ tmp_L=list(itertools.product(X.tolist()[0],X.tolist()[1]))
 L=tmp_L
 #L=[(0.5,0.5)]
 #L=np.array(tmp_L); 
+L.append((-0.5,0.0))
+L.append((0.5,0.0))
+#L=[(0.5,0.5)]
+
 print('\n initial starting points in the list : \n')
 print(L,'\n');
 
@@ -72,7 +76,7 @@ The perfect exit condition for this loop is to empty the L checking the distance
 between two consecutive generated points, but is not yet implemented
 '''
 i=0
-while (L !=[] and i<=1000):
+while (L !=[] and i<=300):
       
     nonlinear = nl_effect_pendulum(L[0][0],L[0][1]);
     print('non linear effect: ',nonlinear)
@@ -99,7 +103,8 @@ while (L !=[] and i<=1000):
         
         #remove_old_add_new_if_P(L[0],L,R,X)
         Approved_point(L[0],L,R,X)
-        
+    
+    print('####### \n iteration ',i,'\n ########')
         # if ( (0.0,0.0) in P):
         #     P.remove((0.0,0.0))
         # L.remove(L[0])
@@ -115,7 +120,7 @@ while (L !=[] and i<=1000):
 print('this is L \n',L,'\n')
 print('this is R \n',R,'\n')
 print('this is P \n',P,'\n')
-
+print(i)
 (f,ax) = plut.create_empty_figure(1)
 eps=1E-2
 ax.set_ylim([-0.5-eps,0.5+eps])
@@ -134,11 +139,13 @@ if(P != [] ):
     PP=np.array(P)
     scatter(PP[:,0],PP[:,1],color="green")
 LW=1
-ax.plot([-0.5, 0.5], [-0.1, -0.1], 'r--',linewidth=LW);
-ax.plot([-0.5, 0.5], [0.1, 0.1], 'r--',linewidth=LW);
-ax.plot([-0.5, -0.5], [-0.1, 0.1], 'r--',linewidth=LW);
-ax.plot([0.5, 0.5], [-0.1, 0.1], 'r--',linewidth=LW);
+ax.plot([-0.5, 0.5], [-0.5, -0.5], 'r--',linewidth=LW);
+ax.plot([-0.5, 0.5], [0.5, 0.5], 'r--',linewidth=LW);
+ax.plot([-0.5, -0.5], [-0.5, 0.5], 'r--',linewidth=LW);
+ax.plot([0.5, 0.5], [-0.5, 0.5], 'r--',linewidth=LW);
 
+# for i,txt in enumerate(P):
+#     ax.annotate(i, P[i])
 
     
 plt.show()

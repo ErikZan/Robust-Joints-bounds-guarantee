@@ -42,7 +42,7 @@ def compute_torque(X,U,L_point,dt,nonlinear,M):
     dq=L_point[1]
     qmax=X[0][1]
     qmin=X[0][0]
-    EPS =1E-06
+    EPS =1E-04
     print(q,dq,qmax,qmin)
     def cost_fun(tau): # FLEXIBILITY: can i add another term to taking account of the previous step?
         cost = dq +dt*(tau+nonlinear) 
@@ -71,139 +71,144 @@ def compute_torque(X,U,L_point,dt,nonlinear,M):
     
     return r
     
-def remove_old_add_new(point,L,P,X):
-    '''
-    When a point has a torque that is to high to stop into the position limits we remove it from L
-    and send it to R. Then we perform check on P if there is a point that share a similar a x or y position
-    and we move toward it. If there is no point we create a new point initializate with a coordinate shared
-    with the previous point and one on the x or y limit.
-    '''   
-    x0=float(point[0]);
-    y0=float(point[1]);
-    a=[];
-    qmax=X[0][1]
-    vmax=X[1][1]
-    if (len(P)==0):
-        P=[(0,0)]
+# def remove_old_add_new(point,L,P,X):
+#     '''
+#     When a point has a torque that is to high to stop into the position limits we remove it from L
+#     and send it to R. Then we perform check on P if there is a point that share a similar a x or y position
+#     and we move toward it. If there is no point we create a new point initializate with a coordinate shared
+#     with the previous point and one on the x or y limit.
+#     '''   
+#     x0=float(point[0]);
+#     y0=float(point[1]);
+#     a=[];
+#     qmax=X[0][1]
+#     vmax=X[1][1]
+#     if (len(P)==0):
+#         P=[(0,0)]
         
-    for i in range(len(P)): # check on P is there is a similar point
+#     for i in range(len(P)): # check on P is there is a similar point
             
-        if ( abs(y0) >= abs(x0) ):  # if velocity > position we reduce it  
-                                    # Possible improvement is to rescale accordingly the bound
-            if (x0==P[i][0]):
-                    b=P[i][1]
-                    a.append(b)
+#         if ( abs(y0) >= abs(x0) ):  # if velocity > position we reduce it  
+#                                     # Possible improvement is to rescale accordingly the bound
+#             if (x0==P[i][0]):
+#                     b=P[i][1]
+#                     a.append(b)
           
-            if (y0>=0.0):
-                if (a==[] and y0==0.0):
-                    a=[-vmax]
-                elif(y0>=0.0):
-                    a=[0.0]
-                max_v= max(a)
+#             if (y0>=0.0):
+#                 if (a==[] and y0==0.0):
+#                     a=[-vmax]
+#                 elif(y0>=0.0):
+#                     a=[0.0]
+#                 max_v= max(a)
                 
-                new_point=(x0,(y0+max_v)/2.00)
-            else:
-                if (a==[] and y0==0.0):
-                    a=[vmax]
-                elif(y0<=0.0):
-                    a=[0.0]
-                max_v= min(a)
+#                 new_point=(x0,(y0+max_v)/2.00)
+#             else:
+#                 if (a==[] and y0==0.0):
+#                     a=[vmax]
+#                 elif(y0<=0.0):
+#                     a=[0.0]
+#                 max_v= min(a)
                 
-                new_point=(x0,(y0+max_v)/2.00)
+#                 new_point=(x0,(y0+max_v)/2.00)
                   
-        else:
-            print("else")
-            if (y0==P[i][1]):
-                    b=P[i][0]
-                    a.append(b)
+#         else:
+#             print("else")
+#             if (y0==P[i][1]):
+#                     b=P[i][0]
+#                     a.append(b)
                                     
-            if (x0>=0.0):
-                if (a==[] and x0==0.0):
-                    a=[-qmax]
-                elif(x0>=0.0):
-                    a=[0.0]
-                max_v= max(a)
-                new_point=((x0+max_v)/2.00,y0)
-            else:
-                if (a==[] and y0==0.0):
-                    a=[qmax]
-                elif(x0<=0.0):
-                    a=[0.0]
-                max_v= min(a)
-                new_point=((x0+max_v)/2.00,y0)
+#             if (x0>=0.0):
+#                 if (a==[] and x0==0.0):
+#                     a=[-qmax]
+#                 elif(x0>=0.0):
+#                     a=[0.0]
+#                 max_v= max(a)
+#                 new_point=((x0+max_v)/2.00,y0)
+#             else:
+#                 if (a==[] and y0==0.0):
+#                     a=[qmax]
+#                 elif(x0<=0.0):
+#                     a=[0.0]
+#                 max_v= min(a)
+#                 new_point=((x0+max_v)/2.00,y0)
                 
-    L.remove((x0,y0))   # We remove the point from L
-    L.append(new_point) # and add the new one
-    return 
+#     L.remove((x0,y0))   # We remove the point from L
+#     L.append(new_point) # and add the new one
+#     return 
 
-def remove_old_add_new_if_P(point,L,R,X):
-    '''
-    Same as remove_old_add_new() but with for positively evaluated number. 
-    We also add to L a new_point_2, but it is probably to check again if is it useful
-    '''    
-    x0=float(point[0]);
-    y0=float(point[1]);
-    a=[];
-    qmax=X[0][1]
-    vmax=X[1][1]
-    for i in range(len(R)):
+# def remove_old_add_new_if_P(point,L,R,X):
+#     '''
+#     Same as remove_old_add_new() but with for positively evaluated number. 
+#     We also add to L a new_point_2, but it is probably to check again if is it useful
+#     '''    
+#     x0=float(point[0]);
+#     y0=float(point[1]);
+#     a=[];
+#     qmax=X[0][1]
+#     vmax=X[1][1]
+#     for i in range(len(R)):
             
     
-        if ( abs(y0) >= abs(x0) ):
+#         if ( abs(y0) >= abs(x0) ):
             
-            if (x0==R[i][0]):
-                    b=R[i][1]
-                    a.append(b)
+#             if (x0==R[i][0]):
+#                     b=R[i][1]
+#                     a.append(b)
                     
-            # if (a==[]):
-            #     a=[vmax]
+#             # if (a==[]):
+#             #     a=[vmax]
                        
-            if (y0>=0.0):
-                if (a==[]):
-                    a=[vmax]
-                max_v= max(a)
-                new_point=(x0,(y0+max_v)/2.00)
-                new_point2=(np.sign(x0)*np.random.random(1)*vmax,(y0+max_v)/2.00)
+#             if (y0>=0.0):
+#                 if (a==[]):
+#                     a=[vmax]
+#                 max_v= max(a)
+#                 new_point=(x0,(y0+max_v)/2.00)
+#                 new_point2=(np.sign(x0)*np.random.random(1)*vmax,(y0+max_v)/2.00)
                 
-            else:
-                if (a==[]):
-                    a=[-vmax]
-                max_v= min(a)
-                new_point=(x0,(y0+max_v)/2.00)
-                new_point2=(np.sign(x0)*np.random.random(1)*vmax,(y0+max_v)/2.00)  
+#             else:
+#                 if (a==[]):
+#                     a=[-vmax]
+#                 max_v= min(a)
+#                 new_point=(x0,(y0+max_v)/2.00)
+#                 new_point2=(np.sign(x0)*np.random.random(1)*vmax,(y0+max_v)/2.00)  
                 
-        elif ( abs(y0) <= abs(x0) ):
+#         elif ( abs(y0) <= abs(x0) ):
             
-            if (y0==R[i][1]):
-                    b=R[i][0]
-                    a.append(b)
+#             if (y0==R[i][1]):
+#                     b=R[i][0]
+#                     a.append(b)
                     
-            # if (a==[]):
-            #     a=[-np.sign(x0)*qmax]
+#             # if (a==[]):
+#             #     a=[-np.sign(x0)*qmax]
                             
-            if (x0>=0.0):
-                if (a==[]):
-                    a=[vmax]
-                max_v= max(a)
-                new_point=((x0+max_v)/2.00,y0)
-                new_point2=((x0+max_v)/2.00,np.sign(y0)*np.random.random(1)*qmax)
-            else:
-                if (a==[]):
-                    a=[-vmax]
-                max_v= min(a)
-                new_point=((x0+max_v)/2.00,y0)
-                new_point2=((x0+max_v)/2.00,np.sign(y0)*np.random.random(1)*qmax)
+#             if (x0>=0.0):
+#                 if (a==[]):
+#                     a=[vmax]
+#                 max_v= max(a)
+#                 new_point=((x0+max_v)/2.00,y0)
+#                 new_point2=((x0+max_v)/2.00,np.sign(y0)*np.random.random(1)*qmax)
+#             else:
+#                 if (a==[]):
+#                     a=[-vmax]
+#                 max_v= min(a)
+#                 new_point=((x0+max_v)/2.00,y0)
+#                 new_point2=((x0+max_v)/2.00,np.sign(y0)*np.random.random(1)*qmax)
     
-    L.remove((x0,y0))
-    L.append(new_point)
-    L.append(new_point2)
-    return 
+#     L.remove((x0,y0))
+#     L.append(new_point)
+#     L.append(new_point2)
+#     return 
 
 def rejected_point(point,L,P,X):
     x0=point[0];
     y0=point[1];
     Pp=[0.0];
-  
+    
+    pos_y= X[1][1]
+    pos_x= X[0][1]
+    neg_y= X[1][0]
+    neg_x= X[0][0]
+    
     if ( abs(y0) >= abs(x0) ):
         
         for i in range(len(P)):
@@ -220,6 +225,13 @@ def rejected_point(point,L,P,X):
         P_eff=Pp[ind]
                         
         new_point= (x0,(y0+P_eff)/2.0)
+        
+        if ( abs(y0-new_point[1])<=1E-2 ):
+            if (y0>=0):
+                new_point= (x0+neg_x,(y0+P_eff)/2.0)
+            else:
+                 new_point= (x0+pos_x,(y0+P_eff)/2.0)
+                 
     elif ( abs(x0) >= abs(y0) ):
         for i in range(len(P)):
             if (y0==P[i][1]):
@@ -235,10 +247,63 @@ def rejected_point(point,L,P,X):
         ind=P_vec.index(P_max)
         P_eff=Pp[ind]
                         
-        new_point= ((x0+P_eff)/2.0,y0)    
-
+        new_point= ((x0+P_eff)/2.0,y0)  
+        if ( abs(x0-new_point[0])<=1E-2 ):
+            if (x0>=0):
+                new_point= ((x0+P_eff)/2.0,y0+neg_y)
+            else:
+                new_point= ((x0+P_eff)/2.0,y0+pos_y)  
+    
+    # if (new_point==point):
+    #     new_point= (np.random.random(1)[0]*x0,np.random.random(1)[0]*y0)
+        
     L.remove((x0,y0))
     L.append(new_point)
+    return
+
+def rejected_point_2(point,L,P,X):
+    x0=point[0];
+    y0=point[1];
+    Pp=[0.0];
+         
+    for i in range(len(P)):
+        if (x0==P[i][0]):
+                b=P[i][1]
+                Pp.append(b)
+                    
+    P_vec = [None]*len(Pp)           
+    for i in range(len(Pp)):
+        P_vec[i]=abs(y0-Pp[i])
+            
+    P_max=min(P_vec)
+    ind=P_vec.index(P_max)
+    P_eff=Pp[ind]
+                        
+    new_point= (x0,(y0+P_eff)/2.0)
+    
+    Pp=[0.0]
+    for i in range(len(P)):
+        if (y0==P[i][1]):
+                b=P[i][0]
+                Pp.append(b)
+                    
+    P_vec = [None]*len(Pp)           
+    for i in range(len(Pp)):
+        P_vec[i]=abs(x0-Pp[i])
+            
+            
+    P_max=min(P_vec)
+    ind=P_vec.index(P_max)
+    P_eff=Pp[ind]
+                        
+    new_point_2= ((x0+P_eff)/2.0,y0)    
+    
+    #if (new_point==point):
+        #new_point= (np.random.random(1)[0]*x0,np.random.random(1)[0]*y0)
+        
+    L.remove((x0,y0))
+    L.append(new_point)
+    L.append(new_point_2)
     return
 
 def Approved_point(point,L,P,X):
@@ -249,18 +314,22 @@ def Approved_point(point,L,P,X):
     pos_x= X[0][1]
     neg_y= X[1][0]
     neg_x= X[0][0]
-  
+    
+    Pp=[]
     if ( abs(y0) >= abs(x0) ):
-        if (y0>=0):
-            Pp=[pos_y/1.5];
-        else:
-            Pp=[neg_y/1.5];
+        
             
         for i in range(len(P)):
             if (x0==P[i][0]):
                     b=P[i][1]
                     Pp.append(b)
-                    
+                    #Pp[i]=b
+        if (Pp==[]):           
+            if (y0>=0):
+                Pp=[pos_y];
+            else:
+                Pp=[neg_y];
+            
         P_vec = [None]*len(Pp)           
         for i in range(len(Pp)):
             P_vec[i]=abs(y0-Pp[i])
@@ -270,16 +339,29 @@ def Approved_point(point,L,P,X):
         P_eff=Pp[ind]
                         
         new_point= (x0,(y0+P_eff)/2.0)
-    elif ( abs(x0) >= abs(y0) ):
-        if (x0>=0):
-            Pp=[pos_x/1.5];
-        else:
-            Pp=[neg_x/1.5];
+        if (new_point==point):
+            new_point= (-x0,(y0+P_eff)/2.0)
             
+        if ( abs(y0-new_point[1])<=1E-2 ):
+            if (x0>=0):
+                new_point= (x0+neg_x,(y0+P_eff)/2.0)
+            else:
+                 new_point= (x0+pos_x,(y0+P_eff)/2.0)
+        
+    elif ( abs(x0) >= abs(y0) ):
+       
         for i in range(len(P)):
             if (y0==P[i][1]):
                     b=P[i][0]
                     Pp.append(b)
+                    
+                    #Pp[i]=b # ADD IT AGAIN !!!!!
+                    
+        if (Pp==[]):           
+            if (x0>=0):
+                Pp=[pos_x];
+            else:
+                Pp=[neg_x];
                     
         P_vec = [None]*len(Pp)           
         for i in range(len(Pp)):
@@ -292,8 +374,102 @@ def Approved_point(point,L,P,X):
                         
         new_point= ((x0+P_eff)/2.0,y0)    
 
+        if (new_point==point):
+            new_point= ((x0+P_eff)/2.0,-y0)
+            
+        if ( abs(x0-new_point[0])<=1E-2 ):
+            if (y0>=0):
+                new_point= ((x0+P_eff)/2.0,y0+neg_y)
+            else:
+                new_point= ((x0+P_eff)/2.0,y0+pos_y)
+            
+        
     L.remove((x0,y0))
     L.append(new_point)
+    print('difference',abs(x0-new_point[0]),abs(y0-new_point[1]))
+    
+    return
+
+
+def Approved_point_2(point,L,P,X):
+    x0=point[0];
+    y0=point[1];
+    
+    pos_y= X[1][1]
+    pos_x= X[0][1]
+    neg_y= X[1][0]
+    neg_x= X[0][0]
+    
+    Pp=[]
+    
+        
+            
+    for i in range(len(P)):
+        if (x0==P[i][0]):
+                b=P[i][1]
+                Pp.append(b)
+                #Pp[i]=b
+    if (Pp==[]):           
+        if (y0>=0):
+            Pp=[pos_y];
+        else:
+            Pp=[neg_y];
+        
+    P_vec = [None]*len(Pp)           
+    for i in range(len(Pp)):
+        P_vec[i]=abs(y0-Pp[i])
+        
+    P_max=min(P_vec)
+    ind=P_vec.index(P_max)
+    P_eff=Pp[ind]
+                    
+    new_point= (x0,(y0+P_eff)/2.0)
+    if (new_point==point):
+        new_point= (x0,(y0+P_eff)/3.0)
+        
+    if ( abs(y0-new_point[1])<=1E-2 ):
+        new_point= (x0/1.5,(y0+P_eff)/3.0)
+        
+    
+
+    Pp=[]
+    for i in range(len(P)):
+        if (y0==P[i][1]):
+                b=P[i][0]
+                Pp.append(b)
+                
+                #Pp[i]=b # ADD IT AGAIN !!!!!
+                
+    if (Pp==[]):           
+        if (x0>=0):
+            Pp=[pos_x];
+        else:
+            Pp=[neg_x];
+                
+    P_vec = [None]*len(Pp)           
+    for i in range(len(Pp)):
+        P_vec[i]=abs(x0-Pp[i])
+        
+        
+    P_max=min(P_vec)
+    ind=P_vec.index(P_max)
+    P_eff=Pp[ind]
+                    
+    new_point_2= ((x0+P_eff)/2.0,y0)    
+
+    if (new_point==point):
+        new_point= ((x0+P_eff)/3.0,y0)
+        
+    if ( abs(x0-new_point[0])<=1E-2 ):
+        new_point= ((x0+P_eff)/3.0,y0/1.5)
+            
+        
+    L.remove((x0,y0))
+    L.append(new_point)
+    L.append(new_point_2)
+    
+    print('difference',abs(x0-new_point[0]),abs(y0-new_point[1]))
+    
     return
 ######################################################################
 # Here there are functions that are not in use and possibly not correct
