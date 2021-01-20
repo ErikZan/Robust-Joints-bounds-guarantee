@@ -24,8 +24,8 @@ from scipy.optimize import minimize
 m=1.5 
 l=2.0
 g=9.81
-torque=[-10.0,10.0]
-q_interval=[0,3.14/2]
+torque=[-100.0,100.0]
+q_interval=[0.0,3.14/2]
 
 #### Function ####
 def max_acc(Xi,tau): # interval aritmetic ?
@@ -39,7 +39,7 @@ def max_acc(Xi,tau): # interval aritmetic ?
     return [ddq_min,ddq_max]
     
 #### Initializate step_size and Max_acc arrays ####
-step_size=0.05
+step_size=3.14/2.1
 L=np.arange(q_interval[0],q_interval[1],step_size)
 L2=np.arange(q_interval[0],q_interval[1],step_size)
 Acc_min=np.zeros(size(L))
