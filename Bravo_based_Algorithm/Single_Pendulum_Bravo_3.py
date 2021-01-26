@@ -23,12 +23,15 @@ import matplotlib.patches as mpatches
 from interval import imath,interval
 
 #### Data ####
-m=1.5 
+
+m=1.5 #*1E-1
 l=2.0
 g=9.81
 torque=[-15.0,15.0]
 X_all=[-0.0,0.5,0.0,2.0]
+
 #### Variables ####
+
 L=[X_all]
 R=[]
 L2=[]
@@ -39,6 +42,8 @@ L2_neg=[[0.0,0.5,0.0,-2.0]]
 R2_neg=[]
 Saved_acc=[]
 Saved_acc_neg=[]
+area_container_1=[]
+area_container_2=[]
 
 #### Functions ####
 
@@ -104,6 +109,11 @@ def Minimize_area(X_now,acc,plot_trigger=False):
     
     return (q,dq)
 
+def R_reorder(R):
+    Q=R
+    Q.sort(key = lambda x: x[1],reverse=True) 
+    return Q
+
 def q_area_finder(dq,qmax,acc,dq_target):
     
     q = qmax - (dq**2-dq_target**2)/(2*acc)
@@ -122,13 +132,23 @@ def new_areas_neg(Xup,q,dq):
     area3=[Xup[0],q,Xup[2],dq]
     return (area1,area2,area3)
 
+def new_areas_2(Xup,q,dq):
+    area1=[Xup[0],q,dq,Xup[3]]
+    area3=[q,Xup[1],Xup[2],Xup[3]]
+    return (area1,area3)    
+
+def new_areas_neg_2(Xup,q,dq):
+    area1=[q,Xup[1],dq,Xup[3]]
+    area3=[Xup[0],q,Xup[2],Xup[3]]
+    return (area1,area3)
+
 # Maximum decelerations
 print('#'*60)
 print('############ Maximum Deceleration ############ ')
 print('#'*60)
 
-n=100
-Q_trig=0
+n=40
+Q_trig=1
 trigger=True
 for i in range(n):
     print('Area in verifica:',L[0],'\n')
@@ -139,10 +159,10 @@ for i in range(n):
     
     (q,dq)=Minimize_area(L[0],acc)
     (new_area1,new_area2,new_area3) = new_areas(L[0],q,dq)
+    (new_area1,new_area3) = new_areas_2(L[0],q,dq)
     L.append(new_area1)
     L.append(new_area3)
     #L.append(new_area2)
-    
     #### new area 2 ###
     # accelartion=max_acc_int(new_area3,torque[0])
     # acc=-accelartion[0]
@@ -163,7 +183,7 @@ for i in range(n):
             Q_trig=1
             L.append([R[-2][1],R[-1][1],R[-1][3],R[-2][3]])
         
-        L.append([R[-2][1],R[-1][1],R[-1][3],R[-2][3]])
+        #L.append([R[-2][1],R[-1][1],R[-1][3],R[-2][3]])
         accelartion=max_acc_int(L2[0],torque[0])
         acc=-accelartion[0]   # .fun
         Saved_acc.append(acc)
@@ -190,7 +210,7 @@ for i in range(n):
     
     (q,dq)=Minimize_area(L_neg[0],acc)
     (new_area1,new_area2,new_area3) = new_areas_neg(L_neg[0],q,dq)
-
+    #(new_area1,new_area3) = new_areas_neg_2(L_neg[0],q,dq)
     L_neg.append(new_area1)
     L_neg.append(new_area3)
     R_neg.append([q,L_neg[0][1],L_neg[0][2],dq])
@@ -203,7 +223,7 @@ for i in range(n):
             Q_trig=1
             L_neg.append([R_neg[-1][0],R_neg[-2][0],R_neg[-1][2],R_neg[-2][2]])
         
-        L_neg.append([R_neg[-1][0],R_neg[-2][0],R_neg[-1][2],R_neg[-2][2]])
+        #L_neg.append([R_neg[-1][0],R_neg[-2][0],R_neg[-1][2],R_neg[-2][2]])
         accelartion=max_acc_int(L2_neg[0],torque[1])
         acc=-accelartion[1]   # .fun
         Saved_acc_neg.append(acc)
@@ -239,18 +259,47 @@ for i in range(size(LL)-1):
 #     (q,dq)=Minimize_area([LL[i],LL[i+1],0.0,0.0],acc)
 #     AA[i]=q
 #     AA[i+1]=dq
-    
+
+############    
 # Plot Stuff
+############
 
-(f,ax) = plut.create_empty_figure(1)
+
+# Plot Functions
 LW=4
-
+(f,ax) = plut.create_empty_figure(1)  # very unreliable method, implement the call of ax after color
 def square_drawer(qmin,qmax,dqmin,dqmax,color='r--'):
     ax.plot([qmin, qmax], [dqmin, dqmin], color,linewidth=LW);
     ax.plot([qmin, qmax], [dqmax, dqmax], color,linewidth=LW);
     ax.plot([qmin, qmin], [dqmin, dqmax], color,linewidth=LW);
     ax.plot([qmax, qmax], [dqmin, dqmax], color,linewidth=LW)
-    
+    return
+
+# def polygon_drawer(Q,color='r--'):
+#     for i in range(size(Q)/4):
+#         ax.plot( [Q[i][1],Q[i+1][1]],[ [Q[i][3] , Q[i+1][3]  ]  )
+                
+#     return
+
+def polygon_drawer(Q,color='r--'):
+    for i in range(int(size(Q)/4)-1):
+        q1=Q[i][1]
+        q2=Q[i+1][1]
+        q3=Q[i][2]  
+        q4=Q[i+1][2]
+        
+        if (Q[i][3]>=q4):
+            q4=Q[i][3]
+            
+        if (Q[i-1][3]>=Q[1][2]):
+            q3=Q[i-1][3]
+       
+        ax.plot( [q1,q2],[q3,q4], color,linewidth=LW )
+                
+    return
+
+
+(f,ax) = plut.create_empty_figure(1)    
 square_drawer(X_all[0],X_all[1],X_all[2],X_all[3])
 
 
@@ -283,8 +332,12 @@ qmax=X_all[0]
 dq_viab_posE= np.sqrt(-2*m*(m*np.sin(qmax)*g*l*q -m*np.sin(qmax)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )/(m*l)
 line_viabE, = ax.plot(q, dq_viab_posE, 'p--');
 
-####
+#### POlygon Draw ####
+Q=R_reorder(R)
+polygon_drawer(Q)
+####              ####
 
+####
 #(f,ax) = plut.create_empty_figure(1)
 square_drawer(X_all[0],X_all[1],0,-X_all[3])
 
