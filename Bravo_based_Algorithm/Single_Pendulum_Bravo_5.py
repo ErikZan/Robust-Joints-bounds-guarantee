@@ -21,7 +21,7 @@ from pylab import *
 from scipy.optimize import minimize,Bounds
 import matplotlib.patches as mpatches
 from interval import imath,interval
-
+from Functions_Bravo import *
 #### Data ####
 
 m=1.5 #*1E-1
@@ -114,11 +114,6 @@ def R_reorder(R):
     Q.sort(key = lambda x: x[1],reverse=True) 
     return Q
 
-def q_area_finder(dq,qmax,acc,dq_target):
-    
-    q = qmax - (dq**2-dq_target**2)/(2*acc)
-    
-    return q
 
 def new_areas(Xup,q,dq):
     area1=[Xup[0],q,dq,Xup[3]]
@@ -148,10 +143,12 @@ print('############ Maximum Deceleration ############ ')
 print('#'*60)
 
 n=40
-Q_trig=1
+i=0
 trigger=True
-for i in range(n):
+while ( L != []):
     print('Area in verifica:',L[0],'\n')
+    i=i+1
+    print('iterazione n ',i)
     accelartion=max_acc_int(L[0],torque[0])
     acc=-accelartion[0]   # .fun
     Saved_acc.append(acc)
@@ -162,45 +159,22 @@ for i in range(n):
     (new_area1,new_area3) = new_areas_2(L[0],q,dq)
     L.append(new_area1)
     L.append(new_area3)
-    #L.append(new_area2)
-    #### new area 2 ###
-    # accelartion=max_acc_int(new_area3,torque[0])
-    # acc=-accelartion[0]
-    # q_area2=q_area_finder(dq,new_area3[1],acc,new_area3[2])
-    # new_area2=[new_area3[0],q_area2,dq,new_area1[3]]
-    # L.append(new_area2)
-    
-    #########
-    
-    #L.append([0.0,q,0.0,X_all[3]]) 
-    
+     
     R.append([L[0][0],q,L[0][2],dq])
-    
-    if (abs(new_area1[1]-new_area1[0])<=5E-3 or abs(new_area1[3]-new_area1[2])<=1E-2):
+    trig=0
+    if (abs(R[-1][1]-R[-1][0])<=5E-3 or abs(R[-1][3]-R[-1][2])<=1E-2):
+        R.remove(R[-1])
         L.remove(new_area1)
-    if (abs(new_area3[1]-new_area3[0])<=5E-3 or abs(new_area3[3]-new_area3[2])<=1E-2):
         L.remove(new_area3)
+        
+        
+    # if (abs(new_area1[1]-new_area1[0])<=5E-3 or abs(new_area1[3]-new_area1[2])<=1E-2 and trig==0):
+    #     L.remove(new_area1)
+    # if (abs(new_area3[1]-new_area3[0])<=5E-3 or abs(new_area3[3]-new_area3[2])<=1E-2 and trig==0):
+    #     L.remove(new_area3)
+            
     ####
     
-    if (size(R)/4>=3 and (size(R)/4)%2 != 0 and Q_trig==0 ): # with Q_trig make only one timestep
-       
-        L2.append([R[-2][1],R[-1][1],R[-1][3],R[-2][3]])
-        
-        if (trigger==True ): # with Q_trig make only one area, the first one
-            Q_trig=1
-            L.append([R[-2][1],R[-1][1],R[-1][3],R[-2][3]])
-        
-        #L.append([R[-2][1],R[-1][1],R[-1][3],R[-2][3]])
-        accelartion=max_acc_int(L2[0],torque[0])
-        acc=-accelartion[0]   # .fun
-        Saved_acc.append(acc)
-        (q,dq)=Minimize_area(L2[0],acc)
-        if (q>=R[-1][1]):
-            q=R[-1][1]
-        R2.append([L2[0][0],q,L2[0][2],dq])
-        L2.remove(L2[0])
-        
-    ####
     L.remove(L[0])
 
 # Maximum acceleration
@@ -208,7 +182,8 @@ print('#'*60)
 print('############ Maximum Acceleration ############')
 print('#'*60)
 Q_trig=0
-for i in range(n):
+
+while (L_neg != [] ):
     print('Area in verifica:',L_neg[0],'\n')
     accelartion=max_acc_int(L_neg[0],torque[1])
     acc=-accelartion[1]
@@ -222,56 +197,19 @@ for i in range(n):
     L_neg.append(new_area3)
     R_neg.append([q,L_neg[0][1],L_neg[0][2],dq])
     
-    if (abs(new_area1[1]-new_area1[0])<=5E-3 or abs(new_area1[2]-new_area1[3])<=1E-2):
+    if (abs(R_neg[-1][1]-R_neg[-1][0])<=5E-3 or abs(R_neg[-1][3]-R_neg[-1][2])<=1E-2):
+        R_neg.remove(R_neg[-1])
         L_neg.remove(new_area1)
-    if (abs(new_area3[1]-new_area3[0])<=5E-3 or abs(new_area3[2]-new_area3[3])<=1E-2):
         L_neg.remove(new_area3)
-        
-    if (size(R_neg)/4>=3 and (size(R_neg)/4)%2 != 0 and Q_trig==0 ): # with Q_trig make only one timestep
-       
-        L2_neg.append([R_neg[-1][0],R_neg[-2][0],R_neg[-1][2],R_neg[-2][2]])
-        
-        if (trigger==True ): # with Q_trig make only one area, the first one
-            Q_trig=1
-            L_neg.append([R_neg[-1][0],R_neg[-2][0],R_neg[-1][2],R_neg[-2][2]])
-        
-        #L_neg.append([R_neg[-1][0],R_neg[-2][0],R_neg[-1][2],R_neg[-2][2]])
-        accelartion=max_acc_int(L2_neg[0],torque[1])
-        acc=-accelartion[1]   # .fun
-        Saved_acc_neg.append(acc)
-        (q,dq)=Minimize_area(L2_neg[0],acc)
-        
-        R_neg.append([q,L2_neg[0][1],L2_neg[0][2],dq])
-        L2_neg.remove(L2_neg[0])
     
+    # if (abs(new_area1[1]-new_area1[0])<=5E-3 or abs(new_area1[2]-new_area1[3])<=1E-2):
+    #     L_neg.remove(new_area1)
+    # if (abs(new_area3[1]-new_area3[0])<=5E-3 or abs(new_area3[2]-new_area3[3])<=1E-2):
+    #     L_neg.remove(new_area3)
+        
     
     L_neg.remove(L_neg[0])
     
-# Alternative Maximum acceleration
-print('#'*60)
-print('############ Maximum alternative Acceleration ############\n ')
-print('#'*60)
-
-step_size=0.05
-LL=np.arange(X_all[0],X_all[1],step_size)
-AA=np.zeros(2*size(LL))
-
-for i in range(size(LL)-1):
-    accelartion=max_acc_int([LL[i],LL[i+1],0.0,0.0],torque[0])
-    acc=accelartion[0]
-    print(i,acc)
-    (q,dq)=Minimize_area([LL[i],LL[i+1],0.0,0.0],acc)
-    AA[i]=q
-    AA[i+1]=dq
-    
-# for i in range(size(LL)-1):
-#     accelartion=max_acc([LL[i],LL[i+1],0.0,0.0],torque[1])
-#     acc=accelartion.fun
-#     print(i,acc)
-#     (q,dq)=Minimize_area([LL[i],LL[i+1],0.0,0.0],acc)
-#     AA[i]=q
-#     AA[i+1]=dq
-
 ############    
 # Plot Stuff
 ############
@@ -279,7 +217,7 @@ for i in range(size(LL)-1):
 
 # Plot Functions
 LW=4
-# very unreliable method, implement the call of ax after color
+
 def square_drawer(qmin,qmax,dqmin,dqmax,ax,color='r--'):
     ax.plot([qmin, qmax], [dqmin, dqmin], color,linewidth=LW);
     ax.plot([qmin, qmax], [dqmax, dqmax], color,linewidth=LW);
@@ -305,11 +243,19 @@ def polygon_drawer(Q,ax,color='r--'):
     return
 
 
-(f,ax1) = plut.create_empty_figure(1)    
+(f,ax1) = plut.create_empty_figure(1)
+    
 PP=np.load('q_viable.npy')
 RR=np.load('q_not_viable.npy')
-scatter(PP[:,0],PP[:,1],color="green")      
-scatter(RR[:,0],RR[:,1],color="red") 
+plot(PP[:,0],PP[:,1],color="green",alpha=0.25)      
+plot(RR[:,0],RR[:,1],color="red",alpha=0.25) 
+
+
+PP_neg=np.load('q_viable_neg.npy')
+RR_neg=np.load('q_not_viable_neg.npy')
+plot(PP_neg[:,0],PP_neg[:,1],color="green",alpha=0.25)      
+plot(RR_neg[:,0],RR_neg[:,1],color="red",alpha=0.25) 
+
 square_drawer(X_all[0],X_all[1],X_all[2],X_all[3],ax1)
 
 
@@ -320,18 +266,14 @@ square_drawer(X_all[0],X_all[1],X_all[2],X_all[3],ax1)
 for s in range(int(size(R)/4)):
     square_drawer(R[s][0],R[s][1],R[s][2],R[s][3],ax1,'g--')
     ax1.annotate(str(Saved_acc[s]), xy=(R[s][0]+( R[s][1]-R[s][0])/2, R[s][2]+( R[s][3]-R[s][2])/2 ),size=8) # int((10*R[s][3]-10*R[s][2])/(0.5*R[s][3]))
-    
-# for s in range(int(size(R2)/4)):
-#     square_drawer(R2[s][0],R2[s][1],R2[s][2],R2[s][3],ax,'b--')
-#     ax.annotate(str(Saved_acc[s]), xy=(R2[s][0]+( R2[s][1]-R2[s][0])/2, R2[s][2]+( R2[s][3]-R2[s][2])/2 ),size=8)
-    
+ 
 #expression = np.sqrt(-2*m*(m*np.sin(q)*g*l*q -m*np.sin(q)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )
 
 # Expression with q => It seems to tend to this curve! must verify why
 
 q = np.arange(X_all[0], X_all[1]+0.01, 0.01);
-dq_viab_posE =  np.sqrt(-2*m*(m*np.sin(q)*g*l*q -m*np.sin(q)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )/(m*l)
-line_viabE, = ax1.plot(q, dq_viab_posE, 'b--');
+# dq_viab_posE =  np.sqrt(-2*m*(m*np.sin(q)*g*l*q -m*np.sin(q)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )/(m*l)
+# line_viabE, = ax1.plot(q, dq_viab_posE, 'b--');
 
 ### same name for 
 
@@ -376,24 +318,24 @@ line_viabE, = ax1.plot(-q+X_all[1], dq_viab_posE, 'p--');
 
 # R2 area plotted are here for clarity
 
-(f,ax) = plut.create_empty_figure(1)
-q = np.arange(X_all[0], X_all[1]+0.01, 0.01);
-dq_viab_posE =  np.sqrt(-2*m*(m*np.sin(q)*g*l*q -m*np.sin(q)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )/(m*l)
-line_viabE, = ax.plot(q, dq_viab_posE, 'b--');
+# (f,ax) = plut.create_empty_figure(1)
+# q = np.arange(X_all[0], X_all[1]+0.01, 0.01);
+# dq_viab_posE =  np.sqrt(-2*m*(m*np.sin(q)*g*l*q -m*np.sin(q)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )/(m*l)
+# line_viabE, = ax.plot(q, dq_viab_posE, 'b--');
 
-### same name for 
+# ### same name for 
 
-qmax=X_all[1]
-dq_viab_posE= np.sqrt(-2*m*(m*np.sin(qmax)*g*l*q -m*np.sin(qmax)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )/(m*l)
-line_viabE, = ax.plot(q, dq_viab_posE, 'o--');
+# qmax=X_all[1]
+# dq_viab_posE= np.sqrt(-2*m*(m*np.sin(qmax)*g*l*q -m*np.sin(qmax)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )/(m*l)
+# line_viabE, = ax.plot(q, dq_viab_posE, 'o--');
 
 
-qmax=X_all[0]
-dq_viab_posE= np.sqrt(-2*m*(m*np.sin(qmax)*g*l*q -m*np.sin(qmax)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )/(m*l)
-line_viabE, = ax.plot(q, dq_viab_posE, 'p--');
-for s in range(int(size(R2)/4)):
-    square_drawer(R2[s][0],R2[s][1],R2[s][2],R2[s][3],ax,'b--')
-    ax.annotate(str(Saved_acc[s]), xy=(R2[s][0]+( R2[s][1]-R2[s][0])/2, R2[s][2]+( R2[s][3]-R2[s][2])/2 ),size=8)
+# qmax=X_all[0]
+# dq_viab_posE= np.sqrt(-2*m*(m*np.sin(qmax)*g*l*q -m*np.sin(qmax)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )/(m*l)
+# line_viabE, = ax.plot(q, dq_viab_posE, 'p--');
+# for s in range(int(size(R2)/4)):
+#     square_drawer(R2[s][0],R2[s][1],R2[s][2],R2[s][3],ax,'b--')
+#     ax.annotate(str(Saved_acc[s]), xy=(R2[s][0]+( R2[s][1]-R2[s][0])/2, R2[s][2]+( R2[s][3]-R2[s][2])/2 ),size=8)
   
 # methods with range  and not area 
     
@@ -525,11 +467,6 @@ for s in range(int(size(R)/4)):
     
     print('check R number ',s,'    ',R[s])
     
-    # evil
-    #(f,axz) = plut.create_empty_figure(1)
-    # square_drawer(R[s][0],R[s][1],R[s][2],R[s][3],axz,'g--')
-    # plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,str(s),1);
-    
     for i in range(n-1):
         
         # Verify in which Rectangle q,dq are and apply relative acceleration
@@ -555,14 +492,9 @@ for s in range(int(size(R)/4)):
 
 
 #### POlygon Draw ####
-Q=R_reorder(R)
-polygon_drawer(Q,ax1)
+# Q=R_reorder(R)
+# polygon_drawer(Q,ax1)
 ####              ####
 
-#(f,ax) = plut.create_empty_figure(1)  
-PP=np.load('q_viable.npy')
-RR=np.load('q_not_viable.npy')
-scatter(PP[:,0],PP[:,1],color="green")      
-scatter(RR[:,0],RR[:,1],color="red") 
        
 plt.show()
