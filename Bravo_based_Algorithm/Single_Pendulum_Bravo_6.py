@@ -30,7 +30,7 @@ g=9.81
 torque=[-15.0,15.0]
 X_all=[0.0,0.5,0.0,2.0]
 
-min_size=1000
+min_size=100
 min_q=X_all[1]/min_size
 min_dq=X_all[3]/min_size
 
@@ -119,6 +119,7 @@ def R_reorder(R,option=True):
     return Q
 
 
+
 def new_areas(Xup,q,dq):
     area1=[Xup[0],q,dq,Xup[3]]
     area2=[q,Xup[1],dq,Xup[3]]
@@ -140,6 +141,17 @@ def new_areas_neg_2(Xup,q,dq):
     area1=[q,Xup[1],dq,Xup[3]]
     area3=[Xup[0],q,Xup[2],Xup[3]]
     return (area1,area3)
+
+#
+
+UPDATE_SPACE=0
+if (UPDATE_SPACE==True):
+    division=100
+    dt=0.001
+    np.save('data.npy',np.array([torque,X_all,m,l,division,dt])) 
+    np.save('data_neg.npy',np.array([torque,L_neg[0],m,l,division,dt]))
+    os.system("python3 /home/erik/Desktop/Thesis/Github/Robust\ Joints\ bounds\ guarantee/Bravo_based_Algorithm/check_points.py " )
+
 
 # Maximum decelerations
 print('#'*60)
@@ -170,58 +182,35 @@ for q in range(6):
         
         R.append([L[0][0],q,L[0][2],dq])
 
+        # Remove R and L under treshold
+        
         if (abs(R[-1][1]-R[-1][0])<=min_q or abs(R[-1][3]-R[-1][2])<=min_dq):
             R.remove(R[-1])
-            L.remove(new_area1)
+            if (new_area1 in L):
+                L.remove(new_area1)
             L.remove(new_area3) 
+            Saved_acc.remove(acc)
         
-        L.remove(L[0])
+        if (new_area1 in L):
+            if ((abs(new_area1[1]-new_area1[0])<=min_q or abs(new_area1[3]-new_area1[2])<=min_dq) or (abs(new_area3[1]-new_area3[0])<=min_q or abs(new_area3[3]-new_area3[2])<=min_dq)):
+                R.remove(R[-1])
+                L.remove(new_area1)
+                L.remove(new_area3) 
+                Saved_acc.remove(acc)
+                
+        if (L != []):    
+            L.remove(L[0])
         
         if (i>=10000):
             print('Not converging: exit at ',i,' iteration')
             break
-
-    Q=R_reorder(R)
-    L=[ [X_all[0], Q[0][0], Q[0][3] ,X_all[2]] ]
-
-print(Q)
-print(L)
-
-# i=0
-# first_time=0
-
-# while ( L != []):
-#     print('Area in verifica:',L[0],'\n')
-#     i=i+1
-#     print('iterazione n ',i)
-#     accelartion=max_acc_int(L[0],torque[0])
-#     acc=-accelartion[0]   # .fun
-#     Saved_acc.append(acc)
-#     print('acceleration : ',acc,'\n')
-    
-#     (q,dq)=Minimize_area(L[0],acc)
-#     #(new_area1,new_area2,new_area3) = new_areas(L[0],q,dq)
-#     (new_area1,new_area3) = new_areas_2(L[0],q,dq)
-#     # if (first_time==1):
         
-#     #     L.append(new_area3)
-#     L.append(new_area3)    
-#     L.append(new_area1)
-    
-#     first_time=1
-     
-#     R.append([L[0][0],q,L[0][2],dq])
+    R_copy=R[:]          
+    Q=R_reorder(R_copy)
+    L=[ [X_all[0], Q[0][1], Q[0][3] ,X_all[2]] ]
 
-#     if (abs(R[-1][1]-R[-1][0])<=min_q or abs(R[-1][3]-R[-1][2])<=min_dq):
-#         R.remove(R[-1])
-#         L.remove(new_area1)
-#         L.remove(new_area3) 
-    
-#     L.remove(L[0])
-    
-#     if (i>=10000):
-#         print('Not converging: exit at ',i,' iteration')
-#         break
+#print(Q)
+#print(L)
 
 # Maximum acceleration
 print('#'*60)
@@ -251,24 +240,33 @@ for j in range(15):
         
         if (abs((R_neg[-1][1]-R_neg[-1][0])<=min_q or abs(R_neg[-1][3]-R_neg[-1][2])<=min_dq) and first_time==1):
             R_neg.remove(R_neg[-1])
-            L_neg.remove(new_area1)
+            if (new_area1 in L_neg):
+                L_neg.remove(new_area1)
             L_neg.remove(new_area3)
+            Saved_acc_neg.remove(acc)
+            
+        if (new_area1 in L_neg):
+            if ((abs(new_area1[1]-new_area1[0])<=min_q or abs(new_area1[3]-new_area1[2])<=min_dq) or (abs(new_area3[1]-new_area3[0])<=min_q or abs(new_area3[3]-new_area3[2])<=min_dq)):
+                R_neg.remove(R_neg[-1])
+                L_neg.remove(new_area1)
+                L_neg.remove(new_area3) 
+                Saved_acc_neg.remove(acc)
             
         first_time=1
-        # if (abs(new_area1[1]-new_area1[0])<=5E-3 or abs(new_area1[2]-new_area1[3])<=1E-2):
-        #     L_neg.remove(new_area1)
-        # if (abs(new_area3[1]-new_area3[0])<=5E-3 or abs(new_area3[2]-new_area3[3])<=1E-2):
-        #     L_neg.remove(new_area3)
+        
+        if (L_neg != []):   
+            L_neg.remove(L_neg[0])
             
-        L_neg.remove(L_neg[0])
         if (i>=10000):
                 print('Not converging: exit at ',i,' iteration')
                 break
-
-    Q=R_reorder(R_neg,option=False)
-    L_neg=[ [ Q[0][0],X_all[1], Q[0][3] ,X_all[3]] ]
+            
+    R_copy_neg=R_neg[:]            
+    Q=R_reorder(R_copy_neg,option=False)
     
-    print(L_neg)
+    L_neg=[ [ Q[0][1],X_all[1], Q[0][3] ,X_all[3]] ]
+    
+    #print(L_neg)
 ############    
 # Plot Stuff
 ############
@@ -324,13 +322,13 @@ square_drawer(X_all[0],X_all[1],X_all[2],X_all[3],ax1)
     
 for s in range(int(size(R)/4)):
     square_drawer(R[s][0],R[s][1],R[s][2],R[s][3],ax1,'g--')
-    #ax1.annotate(str(Saved_acc[s]), xy=(R[s][0]+( R[s][1]-R[s][0])/2, R[s][2]+( R[s][3]-R[s][2])/2 ),size=8) # int((10*R[s][3]-10*R[s][2])/(0.5*R[s][3]))
+    ax1.annotate(str(Saved_acc[s]), xy=(R[s][0]+( R[s][1]-R[s][0])/2, R[s][2]+( R[s][3]-R[s][2])/2 ),size=8) # int((10*R[s][3]-10*R[s][2])/(0.5*R[s][3]))
  
 #expression = np.sqrt(-2*m*(m*np.sin(q)*g*l*q -m*np.sin(q)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )
 
 # Expression with q => It seems to tend to this curve! must verify why
 
-q = np.arange(X_all[0], X_all[1]+0.01, 0.01);
+q = np.arange(X_all[0], X_all[1]+0.001, 0.001);
 # dq_viab_posE =  np.sqrt(-2*m*(m*np.sin(q)*g*l*q -m*np.sin(q)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )/(m*l)
 # line_viabE, = ax1.plot(q, dq_viab_posE, 'b--');
 

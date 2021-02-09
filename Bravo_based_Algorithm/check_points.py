@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 from scipy.optimize.linesearch import _quadmin
 import pinocchio as se3
 from pinocchio.utils import *
@@ -21,14 +23,30 @@ from pylab import *
 from scipy.optimize import minimize,Bounds
 import matplotlib.patches as mpatches
 from interval import imath,interval
-
-m=1.5 #*1E-1
-l=2.0
+import sys
+#from Single_Pendulum_Bravo_6 import torque
 g=9.81
-torque=[-15.0,15.0]
-X_all=[-0.0,0.5,0.0,2.0]
-dt=0.001
-division=500
+
+# torque=sys.argv[0]
+# X_all=sys.argv[1]
+# division=float(sys.argv[2])
+# dt=sys.argv[3]
+# m=sys.argv[4]  #*1E-1
+# l=sys.argv[5]
+
+# dt=0.001
+# division=50
+data=np.load('data.npy')
+print(data)
+
+torque=data[0]
+X_all=data[1]
+m=data[2]  #*1E-1
+l=data[3]
+division=data[4]
+dt=data[5]
+
+
 x_axis_division= np.arange(0.0,0.5,0.5/division)
 y_axis_division= np.arange(0.0,2.0,2.0/division)
 
