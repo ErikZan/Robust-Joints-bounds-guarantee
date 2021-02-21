@@ -35,7 +35,7 @@ g=9.81
 torque=[-15.0,15.0]
 X_all=[0.0,0.5,0.0,2.0]
 
-min_size=150
+min_size=40
 min_q=X_all[1]/min_size
 min_dq=X_all[3]/min_size
 
@@ -146,7 +146,8 @@ while ( L != []):
         
         if (R[-1][3] >= L1[0][2]+1E-5):
             R_ext.append([ L1[0][0],L1[0][1],L1[0][2],R[-1][3] ] )
-            L1[0]= [L1[0][0], R[-1][1], R[-1][3] ,X_all[3]] 
+            L1[0]= [L1[0][0], R[-1][0], R[-1][3] ,X_all[3]] 
+            #L1[0][1]=R[-1][1]
              
               
         accelartion=max_acc_int(L1[0],torque[0])

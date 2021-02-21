@@ -74,6 +74,45 @@ def Minimize_area(X_now,acc,plot_trigger=False):
     
     return (q,dq)
 
+# def Minimize_area(X_now,acc,plot_trigger=False):
+    
+#     (qmin,qmax,dq_target)=(X_now[0],X_now[1],X_now[2])
+    
+   
+    
+#     def area2(q):
+#         '''
+#         Area defined as q*dq where dq is already in the form of 
+#         dq=sqrt(2*abs(acc)*((qmax-qmin)-(q-qmin))) 
+#         and limits are given only on positions
+#         '''
+#         return -((qmax-q)*(  sqrt(2*abs(acc)*(q-qmin)+1E-6))  +  dq_target**2  ) # usata fino a poco fa
+#         #return -((q-qmin)*sqrt(  )
+    
+#     def q_limit(q):
+#         return q-qmin
+
+#     def q_limit_pos(q):
+#         return qmax-q
+
+
+#     if (acc>=0):
+#         q = (dq_target ** 2 * math.sqrt(2) * (-math.sqrt(2) * dq_target ** 2 / 6 + math.sqrt(2 * dq_target ** 4 + 12 * acc * qmax - 12 * acc * qmin) / 6) + 2 * acc * qmax + acc * qmin) / acc / 3
+#         #q = (dq_target ** 2 * math.sqrt(2) * (-math.sqrt(2) * dq_target ** 2 / 6 - math.sqrt(2 * dq_target ** 4 + 12 * acc * qmax - 12 * acc * qmin) / 6) + 2 * acc * qmax + acc * qmin) / acc / 3
+
+#         dq = np.sign(acc)*sqrt(2*abs(acc)*( (qmax-q)  )+dq_target**2 )
+#     else:
+#         r = minimize(area2,qmax, jac=False, method='slsqp', # slsqp
+#                             options={'maxiter': 200, 'disp': plot_trigger },#, # maximum iteration number
+#                             constraints=(
+#                                 {'type':'ineq','fun': q_limit},
+#                                 {'type':'ineq','fun': q_limit_pos}
+#                                         ))
+#         (q,dq)=(r.x[0],np.sign(acc)*sqrt(2*abs(acc)*( (r.x[0]-X_now[0])  )+dq_target**2 ))
+#         print('Area coordinates',q,dq,'\n')
+    
+#     return (q,dq)
+
 def R_reorder(R,option=True):
     Q=R
     Q.sort(key = lambda x: x[3],reverse=option) 

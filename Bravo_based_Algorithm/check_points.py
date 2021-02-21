@@ -47,11 +47,13 @@ division=data[4]
 dt=data[5]
 
 
-x_axis_division= np.arange(0.0,0.5,0.5/division)
-y_axis_division= np.arange(0.0,2.0,2.0/division)
+x_axis_division= np.arange(0.0,X_all[1],X_all[1]/division)
+y_axis_division= np.arange(0.0,X_all[3],X_all[3]/division)
 
 q_viable=[]
 q_not_viable=[]
+top_q_viable=[]
+top_q_not_viable=[]
 
 print(x_axis_division)
 for k in range(size(x_axis_division)):
@@ -68,12 +70,26 @@ for k in range(size(x_axis_division)):
         for i in range(size(q)):   
             q[i+1]=q[i]+dt*dq[i]+dt**2*((torque[0]-m*l*g*np.sin(q[i]))/(m*l**2))/2
             dq[i+1]=dq[i]+dt*((torque[0]-m*l*g*np.sin(q[i]))/(m*l**2))
-    
+            
+            if (q[i+1]>=X_all[1]):
+                q_not_viable.append([q0,dq0])
+                if (size(q_not_viable)>=4):
+                    if ( q_not_viable[-1][1]<=(q_not_viable[-2][1]+(X_all[3]/division)*0.1) ):
+                            top_q_not_viable.append(q_not_viable[-2][1])  
+                break
+                              
             if (dq[i+1]<=0):
                 if (q[i+1]<=X_all[1]):
                     q_viable.append([q0,dq0])
+                    if (size(q_viable)>=4):
+                        if ( q_viable[-1][0]>=(q_viable[-2][0]+(X_all[1]/division)*0.1) ):
+                                top_q_viable.append(q_viable[-2][1])
+                    
                 if (q[i+1]>=X_all[1]):
                     q_not_viable.append([q0,dq0])
+                    if (size(q_not_viable)>=4):
+                        if ( q_not_viable[-1][1]<=(q_not_viable[-2][1]+(X_all[3]/division)*0.1) ):
+                                top_q_not_viable.append(q_not_viable[-2][1])
                 break
         
         print(k,j)        
@@ -81,13 +97,10 @@ for k in range(size(x_axis_division)):
 q_viable = np.array(q_viable)
 q_not_viable = np.array(q_not_viable)
 
-# with open('q_viable.npy','wb') as f:
-#     np.save(f,q_viable)
-# with open('q_not_viable.npy','wb') as ff:   
-#     np.save(ff,q_not_viable)
+
 
 
 np.save('q_viable.npy',q_viable) 
 np.save('q_not_viable.npy',q_not_viable)
-
-
+np.save('top_q_viable.npy',top_q_viable)
+np.save('top_q_not_viable.npy',top_q_not_viable)
