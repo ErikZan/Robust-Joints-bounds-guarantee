@@ -35,7 +35,7 @@ g=9.81
 torque=[-15.0,15.0]
 X_all=[0.0,0.5,0.0,2.0]
 
-min_size=100
+min_size=200
 min_q=X_all[1]/min_size
 min_dq=X_all[3]/min_size
 
@@ -71,12 +71,13 @@ def max_acc_int(Xi,tau):
 #### ####
 
 UPDATE_SPACE=0
-division=300
+division=30
 if (UPDATE_SPACE==True):
     dt=0.0001
     np.save('data.npy',np.array([torque,X_all,m,l,division,dt])) 
     np.save('data_neg.npy',np.array([torque,L_neg[0],m,l,division,dt]))
     os.system("python3 /home/erik/Desktop/Thesis/Github/Robust\ Joints\ bounds\ guarantee/Bravo_based_Algorithm/check_points.py " )
+    os.system("python3 /home/erik/Desktop/Thesis/Github/Robust\ Joints\ bounds\ guarantee/Bravo_based_Algorithm/check_points_neg.py " )
 
 
 # Maximum decelerations
@@ -202,6 +203,7 @@ print('#'*60)
 L3 =[]
 L1 =[]
 L=L_neg
+R_size_for_R_ext_neg=[]
 i=0
 print(L)
 while ( L != []):
@@ -262,13 +264,15 @@ while ( L != []):
         
         if (R_neg[-1][3] <= L1[0][2]-1E-5):
             R_neg_ext.append([ L1[0][0],L1[0][1],L1[0][2],R_neg[-1][3] ] )
-            L1[0]= [ R_neg[-1][0],L1[0][0], R_neg[-1][3] ,L_neg[0][3]] 
+            R_size_for_R_ext_neg.append(size(R_neg)/4-1)
+            L1[0]= [ R_neg[-1][0],L1[0][1], R_neg[-1][3] ,L_neg[0][3]] 
             print('\n ###### \n cambio negativo \n #-#')
+            print(L1[0])
         
-        if (R_neg[-1][2] <= L1[0][3]-1E-5):
-            R_neg_ext.append([ L1[0][0],L1[0][1],L1[0][2],R_neg[-1][3] ] )
-            L1[0]= [ R_neg[-1][0],L1[0][0], R_neg[-1][3] ,L_neg[0][3]] 
-            print('\n ###### \n cambio negativo \n #-#') 
+        # if (R_neg[-1][2] <= L1[0][3]-1E-5):
+        #     R_neg_ext.append([ L1[0][0],L1[0][1],L1[0][2],R_neg[-1][3] ] )
+        #     L1[0]= [ R_neg[-1][0],L1[0][0], R_neg[-1][3] ,L_neg[0][3]] 
+        #     print('\n ###### \n cambio negativo \n #-#') 
               
         accelartion=max_acc_int(L1[0],torque[1])
         acc=-accelartion[1]   # .fun
@@ -350,14 +354,17 @@ def polygon_drawer(Q,ax,color='r--'):
 
 
 (f,ax1) = plut.create_empty_figure(1)
-    
+square_drawer(X_all[0],X_all[1],0,-X_all[3],ax1)
+square_drawer(X_all[0],X_all[1],0,X_all[3],ax1)
 PP=np.load('q_viable.npy')
-RR=np.load('q_not_viable.npy')
+RR=np.load('q_not_viable_neg.npy')
 # plot(PP[:,0],PP[:,1],color="green",alpha=0.25)      
 # plot(RR[:,0],RR[:,1],color="red",alpha=0.25)
 PP_line=[]
+RR_line=[]
 
 PP=PP.tolist()
+
 # print(PP)
 # print(size(PP))
 # for i in range(int(size(PP)/2)):
@@ -380,7 +387,7 @@ PP.append(PP[0][1])
 PP.pop(0)
 PP.append(0.0)
 PP_line= np.array(PP) 
-
+   
 #plot(PP[:,0],PP[:,1],color="purple",alpha=0.25)
                           
 #PP_line=np.load('top_q_viable.npy')
@@ -405,14 +412,43 @@ ax1.fill_between(x_axis, PP_line,y_axis, alpha=0.25, linewidth=0, facecolor='red
 # plot(PP_neg[:,0],PP_neg[:,1],color="green",alpha=0.25)      
 # plot(RR_neg[:,0],RR_neg[:,1],color="red",alpha=0.25) 
 
-square_drawer(X_all[0],X_all[1],X_all[2],X_all[3],ax1)
 
+
+PP=RR.tolist()
+for i in range(int(size(PP)/2)-1):
+    if (PP[0][0] == PP[1][0]):
+        PP.pop(0)
+    else:
+        PP.append(PP[0][1])
+        PP.pop(0) 
+PP.append(PP[0][1])
+PP.pop(0)
+PP.append(0.0)
+PP_line= np.array(PP) 
+y_axis=np.zeros(int(size(PP_line)))
+#x_axis=arange(0.5/int(size(PP_line)),0.5+0.5/int(size(PP_line)),0.5/int(size(PP_line)))
+x_axis=arange(0.0,0.5,0.5/int(size(PP_line)))
+print(size(x_axis),size(y_axis),size(PP_line))
+ax1.fill_between(x_axis,y_axis, PP_line, alpha=0.25, linewidth=0, facecolor='green'); 
+y_axis=np.zeros(int(size(PP_line)))
+y_axis[:]=-X_all[3]
+print(size(x_axis),size(y_axis),size(PP_line))
+ax1.fill_between(x_axis, PP_line,y_axis, alpha=0.25, linewidth=0, facecolor='red'); #[1:size(PP_line)+1]
 
 # # # for s in range(int(size(L)/4)-1):
 # # #     square_drawer(L[s+1][0],L[s+1][1],L[s+1][2],L[s+1][3],ax1,'y--')  # yellow positive square
     
+
     
 for s in range(int(size(R)/4)):
+    square_drawer(R[s][0],R[s][1],R[s][2],R[s][3],ax1,'g--')
+#    ax1.annotate(str(Saved_acc[s]), xy=(R[s][0]+( R[s][1]-R[s][0])/2, R[s][2]+( R[s][3]-R[s][2])/2 ),size=8) # int((10*R[s][3]-10*R[s][2])/(0.5*R[s][3]))
+    if ( ( R[s][1]-R[s][0])/2 >=0.01 ):
+        if (( R[s][3]-R[s][2])/2>=0.01 ):
+            ax1.annotate(str(s), xy=(R[s][0]+( R[s][1]-R[s][0])/2, R[s][2]+( R[s][3]-R[s][2])/2 ),size=15) # int((10*R[s][3]-10*R[s][2])/(0.5*R[s][3]))
+
+
+for s in range(18):
     square_drawer(R[s][0],R[s][1],R[s][2],R[s][3],ax1,'g--')
 #    ax1.annotate(str(Saved_acc[s]), xy=(R[s][0]+( R[s][1]-R[s][0])/2, R[s][2]+( R[s][3]-R[s][2])/2 ),size=8) # int((10*R[s][3]-10*R[s][2])/(0.5*R[s][3]))
     if ( ( R[s][1]-R[s][0])/2 >=0.01 ):
@@ -429,9 +465,9 @@ for s in range(int(size(R_ext)/4)):
             ini=str(int(R_size_for_R_ext[s]))+'ext'
             ax1.annotate(ini, xy=(R_ext[s][0]+( R_ext[s][1]-R_ext[s][0])/2, R_ext[s][2]+( R_ext[s][3]-R_ext[s][2])/2 ),size=15) # int((10*R[s][3]-10*R[s][2])/(0.5*R[s][3]))
     
-# # #expression = np.sqrt(-2*m*(m*np.sin(q)*g*l*q -m*np.sin(q)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )
+# # # #expression = np.sqrt(-2*m*(m*np.sin(q)*g*l*q -m*np.sin(q)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )
 
-# # # Expression with q => It seems to tend to this curve! must verify why
+# # # # Expression with q => It seems to tend to this curve! must verify why
 
 q = np.arange(X_all[0], X_all[1]+0.0025, 0.0025);
 # # dq_viab_posE =  np.sqrt(-2*m*(m*np.sin(q)*g*l*q -m*np.sin(q)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )/(m*l)
@@ -439,36 +475,51 @@ q = np.arange(X_all[0], X_all[1]+0.0025, 0.0025);
 
 ### same name for 
 
-qmax=X_all[1]
-dq_viab_posE= np.sqrt(-2*m*(m*np.sin(qmax)*g*l*q -m*np.sin(qmax)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )/(m*l)
-line_viabE, = ax1.plot(q, dq_viab_posE, 'o--');
+# qmax=X_all[1]
+# dq_viab_posE= np.sqrt(-2*m*(m*np.sin(qmax)*g*l*q -m*np.sin(qmax)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )/(m*l)
+# line_viabE, = ax1.plot(q, dq_viab_posE,color='blue',linewidth=3);
 
 
 qmax=X_all[0]
 dq_viab_posE= np.sqrt(-2*m*(m*np.sin(qmax)*g*l*q -m*np.sin(qmax)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )/(m*l)
-line_viabE, = ax1.plot(q, dq_viab_posE, 'p--');
+line_viabE, = ax1.plot(q, dq_viab_posE,color='blue',linewidth=3);
+line_viab_copy=dq_viab_posE
 
 #### maximum Aceleration Plot
 #(f,ax) = plut.create_empty_figure(1)
-square_drawer(X_all[0],X_all[1],0,-X_all[3],ax1)
+
 
 # for s in range(int(size(L_neg)/4)-1):
 #     square_drawer(L_neg[s+1][0],L_neg[s+1][1],L_neg[s+1][2],L_neg[s+1][3],ax1,'y--') # yellow negative square
     
 for s in range(int(size(R_neg)/4)):
-    square_drawer(R_neg[s][0],R_neg[s][1],R_neg[s][2],R_neg[s][3],ax1,'b--')
+    square_drawer(R_neg[s][0],R_neg[s][1],R_neg[s][2],R_neg[s][3],ax1,'g--')
     #ax1.annotate(str(Saved_acc_neg[s]), xy=(R_neg[s][0]+( R_neg[s][1]-R_neg[s][0])/2, R_neg[s][2]+( R_neg[s][3]-R_neg[s][2])/2 ),size=8) # int((10*R_neg[s][3]-10*R_neg[s][2])/(0.5*R_neg[s][3]))
-    ax1.annotate(str(s), xy=(R_neg[s][0]+( R_neg[s][1]-R_neg[s][0])/2, R_neg[s][2]+( R_neg[s][3]-R_neg[s][2])/2 ),size=8) # int((10*R[s][3]-10*R[s][2])/(0.5*R[s][3]))
+    if ( ( R_neg[s][1]-R_neg[s][0])/2 >=0.01 ):
+        if (( abs(R_neg[s][3]-R_neg[s][2]))/2>=0.01 ):
+            ax1.annotate(str(s), xy=(R_neg[s][0]+( R_neg[s][1]-R_neg[s][0])/2, R_neg[s][2]+( R_neg[s][3]-R_neg[s][2])/2 ),size=15) # int((10*R[s][3]-10*R[s][2])/(0.5*R[s][3]))
+
+for s in range(int(size(R_neg_ext)/4)):
+    square_drawer(R_neg_ext[s][0],R_neg_ext[s][1],R_neg_ext[s][2],R_neg_ext[s][3],ax1,'y--')
+    if ( ( R_neg_ext[s][1]-R_neg_ext[s][0])/2 >=0.01 ):
+        if (( abs(R_neg_ext[s][3]-R_neg_ext[s][2]))/2>=0.01 ): 
+            ini=str(int(R_size_for_R_ext_neg[s]))+'ext'
+            ax1.annotate(ini, xy=(R_neg_ext[s][0]+( R_neg_ext[s][1]-R_neg_ext[s][0])/2, R_neg_ext[s][2]+( R_neg_ext[s][3]-R_neg_ext[s][2])/2 ),size=15) # int((10*R[s][3]-10*R[s][2])/(0.5*R[s][3]))
+    
 
 # same name for qmax evn if is it different
 qmax=X_all[1]
 dq_viab_posE= -np.sqrt(abs(-2*m*(m*np.sin(qmax)*g*l*q -m*np.sin(qmax)*g*l*X_all[1]-q*torque[1]+X_all[1]*torque[1]))  )/(m*l)
-line_viabE, = ax1.plot(-q+qmax, dq_viab_posE, 'o--');
+line_viabE, = ax1.plot(-q+qmax, dq_viab_posE, color='orange',linewidth=3);
+line_viab_copy2=dq_viab_posE
 
+# qmax=X_all[0]
+# dq_viab_posE= -np.sqrt(abs(-2*m*(m*np.sin(qmax)*g*l*q -m*np.sin(qmax)*g*l*X_all[1]-q*torque[1]+X_all[1]*torque[1]))  )/(m*l)
+# line_viabE, = ax1.plot(-q+X_all[1], dq_viab_posE, color='blue',linewidth=3);
 
-qmax=X_all[0]
-dq_viab_posE= -np.sqrt(abs(-2*m*(m*np.sin(qmax)*g*l*q -m*np.sin(qmax)*g*l*X_all[1]-q*torque[1]+X_all[1]*torque[1]))  )/(m*l)
-line_viabE, = ax1.plot(-q+X_all[1], dq_viab_posE, 'p--');
+y_axis=np.zeros(size(q))
+ax1.fill_between(q,line_viab_copy, y_axis, alpha=0.25, linewidth=0, facecolor='green');
+ax1.fill_between(-q+X_all[1],line_viab_copy2, y_axis, alpha=0.25, linewidth=0, facecolor='green');
 
 ax1.set_ylabel(r'$\dot{q}$ $[\frac{rad}{s}]$');
 ax1.set_xlabel(r'$q$ $[rad]$');
@@ -478,19 +529,60 @@ lege2=mpatches.Patch(color='green',alpha=0.25,label='Viable');
 lege3=mpatches.Patch(color='green',ls='--',label='Inner approx');
 lege4=mpatches.Patch(color='yellow',ls='--',label='Modified areas');
 ax1.legend(handles=[lege1,lege2,lege3,lege4], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+# ax1.legend(handles=[lege3,lege4], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
 
-# lege1=mpatches.Patch(color='orange',label='Trajectory '+r'$\ddot{q}^{min}$');
-# lege2=mpatches.Patch(color='blue',label='Trajectory '+r'$\ddot{q}^{min}$');
-# ax1.legend(handles=[lege1,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+# lege1=mpatches.Patch(color='blue',label='Trajectory '+r'$\ddot{q}^{min}$');
+# lege2=mpatches.Patch(color='orange',label='Trajectory '+r'$\ddot{q}^{max}$');
+# lege3 = mpatches.Patch(color='green',alpha=0.25,label='Minimum viable area');
+# ax1.legend(handles=[lege1,lege2,lege3], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
        
 # lege1=mpatches.Patch(color='yellow',label='Integrated Polytope');
 # lege3=mpatches.Patch(color='green',label='Viable Polytope');
 
 # ax1.legend(handles=[lege1,lege3], loc='lower center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
-ax1.set_xlim([0.0,0.5])
-ax1.set_ylim([0.0,2.0])
+
+
+# For first viable area generation
+
+# for s in range(1):
+#     square_drawer(R[s][0],R[s][1],R[s][3],X_all[3],ax1,'y--')  # yellow positive square
+#     ax1.annotate('Area '+str(1), xy=(R[s][0]+( R[s][1]-R[s][0])/2,R[s][3]+(X_all[3]-R[s][3])/2 ),size=40)
+#     square_drawer(R[s][1],X_all[1],X_all[2],X_all[3],ax1,'y--')
+#     ax1.annotate('Area '+str(2), xy=(R[s][1]+( X_all[1]-R[s][1])/2, X_all[2]+( X_all[3]-X_all[2])/2 ),size=40)
+    
+# for s in range(1):
+#     square_drawer(R[s][0],R[s][1],R[s][2],R[s][3],ax1,'g--') 
+#     ax1.annotate(r'$V_{0}^{min}$', xy=(R[s][0]+( R[s][1]-R[s][0])/2, R[s][2]+( R[s][3]-R[s][2])/2 ),size=40)
+
+# accelartion=max_acc_int(X_all,torque[0])
+# acc=-accelartion[0]   # .fun
+# (q,dq)=Minimize_area(X_all,acc)
+# (new_area1,new_area3) = new_areas_2(X_all,q,dq)
+# square_drawer(new_area1[0],new_area1[1],new_area1[2],new_area1[3],ax1,'y--')
+
+
+# lege1=mpatches.Patch(color='red',alpha=0.25,label='Not Viable');
+# lege2=mpatches.Patch(color='green',alpha=0.25,label='Viable');
+# lege3=mpatches.Patch(color='green',ls='--',label='Viable area subset');
+# lege4=mpatches.Patch(color='yellow',ls='--',label='Area to be explored');
+# ax1.legend(handles=[lege1,lege2,lege3,lege4], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+
+# lege1= mpatches.Patch(color='green',alpha=0.25,label='Viable area');
+# lege2=mpatches.Patch(color='blue',label='Trajectory '+r'$\ddot{q}^{m}$');
+# lege3=mpatches.Patch(color='green',ls='--',label=r'$V_{0}^{min}$');
+# lege4=mpatches.Patch(color='yellow',ls='--',label='Areas to be explored');
+# ax1.legend(handles=[lege2,lege3,lege4,lege1], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+
+ax1.set_xlim([-0.0025,0.5025])
+ax1.set_ylim([-2.01,2.01])
+
+# ax1.set_xlim([-0.0025,0.5025])
+# ax1.set_ylim([-2.01,2.01])
+
+# ax1.set_xlim([0.00,0.005])
+# ax1.set_ylim([1.75,1.95])
 
 #plt.tight_layout()
 #plt.autoscale()
-plt.savefig('fig_'+str(int(min_size))+'_'+str(int(size(R)/4+size(R_ext)/4))+'.png', bbox_inches = "tight")
+plt.savefig('fig_'+str(int(min_size))+'_'+str(int(size(R)/4+size(R_ext)/4))+'.pdf', bbox_inches = "tight")
 plt.show()

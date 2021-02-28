@@ -41,7 +41,7 @@ torque=data[0]
 X_all=data[1]
 m=data[2]  #*1E-1
 l=data[3]
-division=data[4]
+division= data[4]
 dt=data[5]
 
 x_axis_division= np.arange(0.0,0.5,0.5/division)
@@ -49,6 +49,7 @@ y_axis_division= np.arange(-2.0,0.0,2.0/division)
 
 q_viable_neg=[]
 q_not_viable_neg=[]
+top_q_not_viable_neg=[]
 
 print(x_axis_division)
 for k in range(size(x_axis_division)):
@@ -65,7 +66,11 @@ for k in range(size(x_axis_division)):
         for i in range(size(q)):   
             q[i+1]=q[i]+dt*dq[i]+dt**2*((torque[1]-m*l*g*np.sin(q[i]))/(m*l**2))/2
             dq[i+1]=dq[i]+dt*((torque[1]-m*l*g*np.sin(q[i]))/(m*l**2))
-    
+
+            if (q[i+1]<=X_all[0]):
+                q_not_viable_neg.append([q0,dq0])
+                break
+            
             if (dq[i+1]>=0):
                 if (q[i+1]>=X_all[0]):
                     q_viable_neg.append([q0,dq0])
