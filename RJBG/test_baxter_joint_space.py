@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jun 14 11:52:00 2016
-
-@author: adelpret
 """
 
 from matplotlib.pyplot import axis

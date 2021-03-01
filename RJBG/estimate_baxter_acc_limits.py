@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jun 15 14:58:48 2016
 
 Estimate the acceleration limits of the Baxter robot through sampling.
 
-@author: adelpret
 """
 
 import pinocchio as se3

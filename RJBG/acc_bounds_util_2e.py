@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Jan 30 10:28:50 2015
-
 Utility functions to compute the acceleration bounds for a system
 with bounded position, velocity and accelerations. These computations
 are based on the viability theory. A state is viable if, starting
 from that state, it is possible to respect all the bounds (i.e. position, 
 velocity and acceleration) in the future.
-
-@author: adelpret
 """
 import numpy as np
 

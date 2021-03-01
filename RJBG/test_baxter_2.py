@@ -2,7 +2,6 @@
 """
 Created on Tue Jun 14 11:52:00 2016
 
-@author: adelpret
 """
 
 import pinocchio as se3
@@ -451,5 +450,5 @@ for j in range(1):
             ax_pos.set_xlabel('Time [s]');
             plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'acc_j'+str(j),1);
             
-#plt.show()
+plt.show()
     

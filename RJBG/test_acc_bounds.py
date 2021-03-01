@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jan 28 16:54:01 2015
 
 Test the expressions for the acceleration limits that guarantees the feasibility
 of the position and velocity limits in the future.
 These expressions have been derived using the viability theory.
-@author: adelpret
+
 """
 import numpy as np
 from numpy.random import random
