@@ -58,8 +58,8 @@ line_styles     =["c-", "b--", "g-.", "k:", "m-"];
 PLOT_JOINT_POS_VEL_ACC = True;
 PLOT_STATE_SPACE = 1;
 Q_INTERVAL = 0.001; # the range of possible angles is sampled with this step for plotting
-TEST_STANDARD = 0;
-TEST_VIABILITY=1;
+TEST_STANDARD = 1;
+TEST_VIABILITY=0;
 TEST_RANDOM=0;
 PLAY_TRAJECTORY_ONLINE = False;
 PLAY_TRAJECTORY_AT_THE_END = True;
@@ -74,7 +74,7 @@ os.makedirs(GARBAGE_FOLDER);
 ''' END OF PLOT-RELATED USER PARAMETERS '''
 
 ''' CONTROLLER USER PARAMETERS '''
-ACC_BOUNDS_TYPE = 'NAIVE'; #'VIAB_CLASSIC','VIAB_ROBUST' 'NAIVE'
+ACC_BOUNDS_TYPE = 'VIAB_CLASSIC'; #'VIAB_CLASSIC','VIAB_ROBUST' 'NAIVE'
 T = 3.0;    # total simulation time
 DT = 0.05;  # time step
 #DT_SAFE = np.array([2, 5, 20])*DT;
@@ -348,6 +348,12 @@ for j in range(7):
             ax.set_title('Joint '+str(j));
             ax.set_xlabel(r'$q$ [rad]');
             ax.set_ylabel(r'$\dot{q}$ [rad/s]');
+            lege1=mpatches.Patch(color='blue',label='Trajectory');
+            lege2=mpatches.Patch(color='black',label='Pos-Vel bounds');
+            lege3=mpatches.Patch(color='red',label='Viability area without 'r'$w_i$');
+            
+            ax.legend(handles=[lege1,lege2,lege3], loc='upper center',bbox_to_anchor=(0.5, 1.0),
+                    bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
         
         plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_j'+str(j),PARAMS);
         
@@ -412,5 +418,5 @@ for j in range(7):
             #ax_accc.legend()
             #leg.get_frame().set_alpha(0.6);            
             plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_ACC_j'+str(j),PARAMS);
-plt.show()
+#plt.show()
     

@@ -93,6 +93,37 @@ print('#'*60)
 print('############ Maximum Deceleration ############ ')
 print('#'*60)
 
+LW=4
+
+def square_drawer(qmin,qmax,dqmin,dqmax,ax,color='r--'):
+    ax.plot([qmin, qmax], [dqmin, dqmin], color,linewidth=LW);
+    ax.plot([qmin, qmax], [dqmax, dqmax], color,linewidth=LW);
+    ax.plot([qmin, qmin], [dqmin, dqmax], color,linewidth=LW);
+    ax.plot([qmax, qmax], [dqmin, dqmax], color,linewidth=LW)
+    return 
+
+(f,ax1) = plut.create_empty_figure(1)
+square_drawer(X_all[0],X_all[1],0,-X_all[3],ax1)
+square_drawer(X_all[0],X_all[1],0,X_all[3],ax1)
+
+ax1.set_xlim([-0.0025,0.5025])
+ax1.set_ylim([-0.01,2.01])
+
+ax1.set_ylabel(r'$\dot{q}$ $[\frac{rad}{s}]$');
+ax1.set_xlabel(r'$q$ $[rad]$');
+
+# lege1=mpatches.Patch(color='red',alpha=0.25,label='Not Viable');
+# lege2=mpatches.Patch(color='green',alpha=0.25,label='Viable');
+# lege3=mpatches.Patch(color='green',ls='--',label='Inner approx');
+# lege4=mpatches.Patch(color='yellow',ls='--',label='Modified areas');
+# ax1.legend(handles=[lege1,lege2,lege3,lege4], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+# ax1.legend(handles=[lege3,lege4], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+
+lege1=mpatches.Patch(color='blue',label='Trajectory '+r'$\ddot{q}^{m}$');
+lege2=mpatches.Patch(color='orange',label='Trajectory '+r'$\ddot{q}^{M}$');
+lege3 = mpatches.Patch(color='green',alpha=0.25,label='Minimum viable area');
+ax1.legend(handles=[lege1,lege2,lege3], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+
 L3 =[]
 L1 =[]
 R_size_for_R_ext=[]
@@ -116,7 +147,21 @@ while ( L != []):
     L1.append(new_area1)   
     L3.append(new_area3)
     R.append([L[0][0],q,L[0][2],dq])
-
+    
+    
+    square_drawer(L1[-1][0],L1[-1][1],L1[-1][2],L1[-1][3],ax1,'y--')
+    square_drawer(L3[-1][0],L3[-1][1],L3[-1][2],L3[-1][3],ax1,'y--')
+    square_drawer(R[-1][0],R[-1][1],R[-1][2],R[-1][3],ax1,'g--')
+    if ( ( R[-1][1]-R[-1][0])/2 >=0.01 ):
+        if (( R[-1][3]-R[-1][2])/2>=0.01 ):
+            ax1.annotate(str(i), xy=(R[-1][0]+( R[-1][1]-R[-1][0])/2, R[-1][2]+( R[-1][3]-R[-1][2])/2 ),size=15) # int((10*R[s][3]-10*R[s][2])/(0.5*R[s][3]))
+    q = np.arange(L3[-1][0], L3[-1][1]+0.0025, 0.0025);
+    qmax=L3[-1][0]
+    dq_viab_posE= np.sqrt(-2*m*(m*np.sin(qmax)*g*l*q -m*np.sin(qmax)*g*l*L3[-1][1]-q*torque[0]+L3[-1][1]*torque[0])  )/(m*l)
+    lines = ax1.plot(q, dq_viab_posE,color='blue',linewidth=3);
+    plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,IMAGES_FILE_NAME+'_'+f"{i:04d}",PARAMS)
+    ax1.lines.pop(-1)
+    
     while ( L1 !=[]):
         
         while( L3 !=[]):
@@ -133,7 +178,18 @@ while ( L != []):
             L1.append(new_area1)   
             L3.append(new_area3)
             R.append([L3[0][0],q,L3[0][2],dq])
-            
+            square_drawer(L1[-1][0],L1[-1][1],L1[-1][2],L1[-1][3],ax1,'y--')
+            square_drawer(L3[-1][0],L3[-1][1],L3[-1][2],L3[-1][3],ax1,'y--')
+            square_drawer(R[-1][0],R[-1][1],R[-1][2],R[-1][3],ax1,'g--')
+            if ( ( R[-1][1]-R[-1][0])/2 >=0.01 ):
+                if (( R[-1][3]-R[-1][2])/2>=0.01 ):
+                    ax1.annotate(str(i), xy=(R[-1][0]+( R[-1][1]-R[-1][0])/2, R[-1][2]+( R[-1][3]-R[-1][2])/2 ),size=15) # int((10*R[s][3]-10*R[s][2])/(0.5*R[s][3]))
+            q = np.arange(L3[-1][0], L3[-1][1]+0.0025, 0.0025);
+            qmax=L3[-1][0]
+            dq_viab_posE= np.sqrt(-2*m*(m*np.sin(qmax)*g*l*q -m*np.sin(qmax)*g*l*L3[-1][1]-q*torque[0]+L3[-1][1]*torque[0])  )/(m*l)
+            lines = ax1.plot(q, dq_viab_posE,color='blue',linewidth=3);
+            plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,IMAGES_FILE_NAME+'_'+f"{i:04d}",PARAMS)
+            ax1.lines.pop(-1)
             
             if (abs(R[-1][1]-R[-1][0])<=min_q or abs(R[-1][3]-R[-1][2])<=min_dq):
                 R.remove(R[-1])
@@ -175,6 +231,19 @@ while ( L != []):
         
         R.append([L1[0][0],q,L1[0][2],dq])
         
+        square_drawer(L1[-1][0],L1[-1][1],L1[-1][2],L1[-1][3],ax1,'y--')
+        square_drawer(L3[-1][0],L3[-1][1],L3[-1][2],L3[-1][3],ax1,'y--')
+        square_drawer(R[-1][0],R[-1][1],R[-1][2],R[-1][3],ax1,'g--')
+        if ( ( R[-1][1]-R[-1][0])/2 >=0.01 ):
+            if (( R[-1][3]-R[-1][2])/2>=0.01 ):
+                ax1.annotate(str(i), xy=(R[-1][0]+( R[-1][1]-R[-1][0])/2, R[-1][2]+( R[-1][3]-R[-1][2])/2 ),size=15) # int((10*R[s][3]-10*R[s][2])/(0.5*R[s][3]))
+        q = np.arange(L1[-1][0], L1[-1][1]+0.0025, 0.0025);
+        qmax=L1[-1][0]
+        dq_viab_posE= np.sqrt(-2*m*(m*np.sin(qmax)*g*l*q -m*np.sin(qmax)*g*l*L1[-1][1]-q*torque[0]+L1[-1][1]*torque[0])  )/(m*l)
+        lines = ax1.plot(q, dq_viab_posE,color='blue',linewidth=3);
+        plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,IMAGES_FILE_NAME+'_'+f"{i:04d}",PARAMS)
+        
+        ax1.lines.pop(-1)
         
         i=i+1
         if (abs(R[-1][1]-R[-1][0])<=min_q or abs(R[-1][3]-R[-1][2])<=min_dq):
