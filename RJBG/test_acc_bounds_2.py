@@ -79,7 +79,7 @@ qMax    = 2.0;
 qMin    = -2.0;
 MAX_VEL = 5.0;
 MAX_ACC = 10;
-N_TESTS = 30;
+N_TESTS = 1;
 DT = 0.1;
 VIABILITY_MARGIN = 1e10; # minimum margin to leave between ddq and its bounds found through viability
 E = 0.33* MAX_ACC;
@@ -394,8 +394,8 @@ if(PLOT_STATE_SPACE):
     dq_plot = -t*(MAX_ACC);
     
     t = np.arange(0, t_use_plot,  0.001); # 0.001
-    line_impl, = ax.plot(q_plot,dq_plot, 'c--');
-    line_impl, = ax.plot(-q_plot,-dq_plot, 'c--');
+    line_impl, = ax.plot(q_plot,dq_plot, 'b--');
+    line_impl, = ax.plot(-q_plot,-dq_plot, 'b--');
     qplota1 = np.zeros(t.size)
     dqplota1 = np.zeros(t.size)
     qplota2 = np.zeros(t.size)
@@ -505,7 +505,7 @@ if(PLOT_STATE_SPACE):
                 bbox_to_anchor=(-0.1, 1.02, 1.2, .102), loc=2, ncol=3, mode="expand", borderaxespad=0.
                 
                 );
-        lege1=mpatches.Patch(color='cyan',label='Implicit pos-acc');
+        lege1=mpatches.Patch(color='blue',label='Implicit pos-acc');
         lege2=mpatches.Patch(color='red',label='Viability');
         lege3=mpatches.Patch(color='black',label='Pos-vel bounds');
         lege4=mpatches.Patch(color='yellow',label='Viability Robust');
@@ -513,10 +513,11 @@ if(PLOT_STATE_SPACE):
         ax.legend(handles=[lege1,lege2,lege3,lege4,lege5], loc='upper center',bbox_to_anchor=(0.5, 1.0),
                     bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
     leg.get_frame().set_alpha(0.6);
-    
+    ax.set_xlim([qMin,qMax])
+    ax.set_xlim([-MAX_VEL,MAX_VEL])
     
     if(TRAJECTORY):
-        ax.plot(q,dq,'k x');
+        ax.plot(q,dq,'k o');
 
     if(TRAJECTORY == 'SAVE_EACH'):
         for i in range(N_TESTS):
@@ -530,9 +531,13 @@ if(PLOT_STATE_SPACE):
     ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
     ax.set_xlim([1.1*qMin, 1.1*qMax]);
     ax.set_ylim([-1.1*MAX_VEL, 1.1*MAX_VEL]);
-    ax.set_xlabel(r'$q$');
-    ax.set_ylabel(r'$\dot{q}$');
-    
+    # ax.set_xlabel(r'$q$');
+    # ax.set_ylabel(r'$\dot{q}$');
+    ax.annotate(r'$q$', xy=(0.485, 0), ha='left', va='top', xycoords='axes fraction', fontsize=60)
+    ax.annotate(r'$\dot{q}$', xy=(0, 0.61), ha='left', va='top', xycoords='axes fraction', fontsize=60)
+    # ax.set_xlim([qMin,qMax])
+    ax.set_ylim([-MAX_VEL-0.025,MAX_VEL+0.025])
+    plt.savefig('/home/erik/Desktop/Viab_pres_2.png')
 plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,'State_Space'+str(E),PARAMS)
            
         
@@ -677,5 +682,6 @@ if(PLOT_SINGULAR):
         plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,'Acceleration',PARAMS)
     #ax[0].set_title('Position')
     #plut.saveFigure('max_acc_traj_'+str(E/MAX_ACC*100)+'_'+str(int(1e3*DT))+'_ms');
+    
 plt.show();
     

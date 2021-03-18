@@ -154,10 +154,10 @@ while ( L != []):
             L_reorder(L3)
             L_reorder(L1)  
         
-        if (R[-1][3] >= L1[0][2]+1E-5):
-            R_ext.append([ L1[0][0],L1[0][1],L1[0][2],R[-1][3] ] )
-            R_size_for_R_ext.append(size(R)/4-1)
-            L1[0]= [L1[0][0], R[-1][1], R[-1][3] ,X_all[3]] 
+        # if (R[-1][3] >= L1[0][2]+1E-5):
+        #     R_ext.append([ L1[0][0],L1[0][1],L1[0][2],R[-1][3] ] )
+        #     R_size_for_R_ext.append(size(R)/4-1)
+        #     L1[0]= [L1[0][0], R[-1][1], R[-1][3] ,X_all[3]] 
              
               
         accelartion=max_acc_int(L1[0],torque[0])
@@ -364,6 +364,20 @@ def polygon_drawer(Q,ax,color='r--'):
 (f,ax1) = plut.create_empty_figure(1)
 square_drawer(X_all[0],X_all[1],0,-X_all[3],ax1)
 square_drawer(X_all[0],X_all[1],0,X_all[3],ax1)
+
+ax1.set_xlim([-0.0025,0.5025])
+ax1.set_ylim([-0.01,2.01])
+
+lege1=mpatches.Patch(color='blue',label='Trajectory '+r'$\ddot{q}^{m}$');
+lege2=mpatches.Patch(color='green',alpha=0.25,label='Viable min area');
+lege3=mpatches.Patch(color='green',ls='--',label=r'$V_0^{min}$');
+lege4=mpatches.Patch(color='yellow',ls='--',label='Areas to be explored');
+ax1.legend(handles=[lege1,lege2,lege3,lege4], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+
+ax1.set_ylabel(r'$\dot{q}$ $[\frac{rad}{s}]$');
+ax1.set_xlabel(r'$q$ $[rad]$');
+
+plt.savefig(GARBAGE_FOLDER+'fig_1.png', bbox_inches = "tight")
 # PP=np.load('q_viable.npy')
 # RR=np.load('q_not_viable_neg.npy')
 # # plot(PP[:,0],PP[:,1],color="green",alpha=0.25)      
@@ -486,7 +500,7 @@ qmax=X_all[0]
 dq_viab_posE= np.sqrt(-2*m*(m*np.sin(qmax)*g*l*q -m*np.sin(qmax)*g*l*X_all[1]-q*torque[0]+X_all[1]*torque[0])  )/(m*l)
 line_viabE, = ax1.plot(q, dq_viab_posE,color='blue',linewidth=3);
 line_viab_copy=dq_viab_posE
-
+plt.savefig(GARBAGE_FOLDER+'fig_2.png', bbox_inches = "tight")
 #### maximum Aceleration Plot
 #(f,ax) = plut.create_empty_figure(1)
 
@@ -523,9 +537,8 @@ y_axis=np.zeros(size(q))
 ax1.fill_between(q,line_viab_copy, y_axis, alpha=0.25, linewidth=0, facecolor='green');
 ax1.fill_between(-q+X_all[1],line_viab_copy2, y_axis, alpha=0.25, linewidth=0, facecolor='green');
 
-ax1.set_ylabel(r'$\dot{q}$ $[\frac{rad}{s}]$');
-ax1.set_xlabel(r'$q$ $[rad]$');
 
+plt.savefig(GARBAGE_FOLDER+'fig_3.png', bbox_inches = "tight")
 # lege1=mpatches.Patch(color='red',alpha=0.25,label='Not Viable');
 # lege2=mpatches.Patch(color='green',alpha=0.25,label='Viable');
 # lege3=mpatches.Patch(color='green',ls='--',label='Inner approx');
@@ -533,10 +546,10 @@ ax1.set_xlabel(r'$q$ $[rad]$');
 # ax1.legend(handles=[lege1,lege2,lege3,lege4], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
 # ax1.legend(handles=[lege3,lege4], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
 
-lege1=mpatches.Patch(color='blue',label='Trajectory '+r'$\ddot{q}^{m}$');
-lege2=mpatches.Patch(color='orange',label='Trajectory '+r'$\ddot{q}^{M}$');
-lege3 = mpatches.Patch(color='green',alpha=0.25,label='Minimum viable area');
-ax1.legend(handles=[lege1,lege2,lege3], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+# lege1=mpatches.Patch(color='blue',label='Trajectory '+r'$\ddot{q}^{m}$');
+# lege2=mpatches.Patch(color='orange',label='Trajectory '+r'$\ddot{q}^{M}$');
+# lege3 = mpatches.Patch(color='green',alpha=0.25,label='Minimum viable area');
+# ax1.legend(handles=[lege1,lege2,lege3], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
        
 # lege1=mpatches.Patch(color='yellow',label='Integrated Polytope');
 # lege3=mpatches.Patch(color='green',label='Viable Polytope');
@@ -546,15 +559,29 @@ ax1.legend(handles=[lege1,lege2,lege3], loc='upper center',bbox_to_anchor=(0.5, 
 
 # For first viable area generation
 
-# for s in range(1):
-#     square_drawer(R[s][0],R[s][1],R[s][3],X_all[3],ax1,'y--')  # yellow positive square
-#     ax1.annotate('Area '+str(1), xy=(R[s][0]+( R[s][1]-R[s][0])/2,R[s][3]+(X_all[3]-R[s][3])/2 ),size=40)
-#     square_drawer(R[s][1],X_all[1],X_all[2],X_all[3],ax1,'y--')
-#     ax1.annotate('Area '+str(2), xy=(R[s][1]+( X_all[1]-R[s][1])/2, X_all[2]+( X_all[3]-X_all[2])/2 ),size=40)
+for s in range(1):
+    square_drawer(R[s][0],R[s][1],R[s][2],R[s][3],ax1,'g--') 
+    ax1.annotate(r'$V_{0}^{min}$', xy=(R[s][0]+( R[s][1]-R[s][0])/2, R[s][2]+( R[s][3]-R[s][2])/2 ),size=40)
+
+plt.savefig(GARBAGE_FOLDER+'fig_4.png', bbox_inches = "tight")
+
+for s in range(1):
+    square_drawer(R[s][0],R[s][1],R[s][3],X_all[3],ax1,'y--')  # yellow positive square
+    ax1.annotate('Area '+str(1), xy=(R[s][0]+( R[s][1]-R[s][0])/2,R[s][3]+(X_all[3]-R[s][3])/2 ),size=40)
+    square_drawer(R[s][1],X_all[1],X_all[2],X_all[3],ax1,'y--')
+    ax1.annotate('Area '+str(2), xy=(R[s][1]+( X_all[1]-R[s][1])/2, X_all[2]+( X_all[3]-X_all[2])/2 ),size=40)
     
-# for s in range(1):
-#     square_drawer(R[s][0],R[s][1],R[s][2],R[s][3],ax1,'g--') 
-#     ax1.annotate(r'$V_{0}^{min}$', xy=(R[s][0]+( R[s][1]-R[s][0])/2, R[s][2]+( R[s][3]-R[s][2])/2 ),size=40)
+plt.savefig(GARBAGE_FOLDER+'fig_5.png', bbox_inches = "tight")
+    
+s=1
+square_drawer(R[s][0],R[s][1],R[s][2],R[s][3],ax1,'g--') 
+ax1.annotate(r'$2$', xy=(R[s][0]+( R[s][1]-R[s][0])/2, R[s][2]+( R[s][3]-R[s][2])/2 ),size=40)
+
+s=9
+square_drawer(R[s][0],R[s][1],R[s][2],R[s][3],ax1,'g--') 
+ax1.annotate(r'$1$', xy=(R[s][0]+( R[s][1]-R[s][0])/2, R[s][2]+( R[s][3]-R[s][2])/2 ),size=40)
+
+plt.savefig(GARBAGE_FOLDER+'fig_6.png', bbox_inches = "tight")
 
 # accelartion=max_acc_int(X_all,torque[0])
 # acc=-accelartion[0]   # .fun
@@ -575,8 +602,7 @@ ax1.legend(handles=[lege1,lege2,lege3], loc='upper center',bbox_to_anchor=(0.5, 
 # lege4=mpatches.Patch(color='yellow',ls='--',label='Areas to be explored');
 # ax1.legend(handles=[lege2,lege3,lege4,lege1], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
 
-ax1.set_xlim([-0.0025,0.5025])
-ax1.set_ylim([-0.01,2.01])
+
 
 for s in range(int(size(R)/4)):
     square_drawer(R[s][0],R[s][1],R[s][2],R[s][3],ax1,'g--')

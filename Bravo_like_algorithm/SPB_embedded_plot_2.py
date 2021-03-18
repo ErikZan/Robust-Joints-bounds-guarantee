@@ -35,7 +35,7 @@ g=9.81
 torque=[-15.0,15.0]
 X_all=[0.0,0.5,0.0,2.0]
 
-min_size=50
+min_size=200
 min_q=X_all[1]/min_size
 min_dq=X_all[3]/min_size
 
@@ -93,7 +93,7 @@ print('#'*60)
 print('############ Maximum Deceleration ############ ')
 print('#'*60)
 
-LW=4
+LW=2
 
 def square_drawer(qmin,qmax,dqmin,dqmax,ax,color='r--'):
     ax.plot([qmin, qmax], [dqmin, dqmin], color,linewidth=LW);
@@ -108,7 +108,72 @@ square_drawer(X_all[0],X_all[1],0,X_all[3],ax1)
 
 ax1.set_xlim([-0.0025,0.5025])
 ax1.set_ylim([-0.01,2.01])
+PP=np.load('q_viable.npy')
+RR=np.load('q_not_viable_neg.npy')
 
+PP_line=[]
+RR_line=[]
+PP=PP.tolist()
+
+
+for i in range(int(size(PP)/2)-1):
+    if (PP[0][0] == PP[1][0]):
+        PP.pop(0)
+    else:
+        PP.append(PP[0][1])
+        PP.pop(0)  
+            
+PP.append(PP[0][1])
+PP.pop(0)
+PP.append(0.0)
+PP_line= np.array(PP) 
+   
+#plot(PP[:,0],PP[:,1],color="purple",alpha=0.25)
+                          
+#PP_line=np.load('top_q_viable.npy')
+y_axis=np.zeros(int(size(PP_line)))
+#x_axis=arange(0.5/int(size(PP_line)),0.5+0.5/int(size(PP_line)),0.5/int(size(PP_line)))
+x_axis=arange(0.0,0.5,0.5/int(size(PP_line)))
+print(size(x_axis),size(y_axis),size(PP_line))
+ax1.fill_between(x_axis,y_axis, PP_line, alpha=0.25, linewidth=0, facecolor='green'); #[1:size(PP_line)+1]
+
+# plot(x_axis,y_axis,color="red",alpha=0.25)
+# plot(x_axis,PP_line,color="red",alpha=0.25)
+
+
+#PP_line=np.load('top_q_not_viable.npy')
+y_axis=np.zeros(int(size(PP_line)))
+y_axis[:]=X_all[3]
+
+print(size(x_axis),size(y_axis),size(PP_line))
+ax1.fill_between(x_axis, PP_line,y_axis, alpha=0.25, linewidth=0, facecolor='red'); #[1:size(PP_line)+1]
+# PP_neg=np.load('q_viable_neg.npy')
+# RR_neg=np.load('q_not_viable_neg.npy')
+# plot(PP_neg[:,0],PP_neg[:,1],color="green",alpha=0.25)      
+# plot(RR_neg[:,0],RR_neg[:,1],color="red",alpha=0.25) 
+
+
+
+PP=RR.tolist()
+for i in range(int(size(PP)/2)-1):
+    if (PP[0][0] == PP[1][0]):
+        PP.pop(0)
+    else:
+        PP.append(PP[0][1])
+        PP.pop(0) 
+PP.append(PP[0][1])
+PP.pop(0)
+PP.append(0.0)
+PP_line= np.array(PP) 
+y_axis=np.zeros(int(size(PP_line)))
+#x_axis=arange(0.5/int(size(PP_line)),0.5+0.5/int(size(PP_line)),0.5/int(size(PP_line)))
+x_axis=arange(0.0,0.5,0.5/int(size(PP_line)))
+print(size(x_axis),size(y_axis),size(PP_line))
+ax1.fill_between(x_axis,y_axis, PP_line, alpha=0.25, linewidth=0, facecolor='green'); 
+y_axis=np.zeros(int(size(PP_line)))
+y_axis[:]=-X_all[3]
+print(size(x_axis),size(y_axis),size(PP_line))
+ax1.fill_between(x_axis, PP_line,y_axis, alpha=0.25, linewidth=0, facecolor='red'); #[1:size(PP_line)+1]
 ax1.set_ylabel(r'$\dot{q}$ $[\frac{rad}{s}]$');
 ax1.set_xlabel(r'$q$ $[rad]$');
 
@@ -119,10 +184,11 @@ ax1.set_xlabel(r'$q$ $[rad]$');
 # ax1.legend(handles=[lege1,lege2,lege3,lege4], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
 # ax1.legend(handles=[lege3,lege4], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
 
-lege1=mpatches.Patch(color='blue',label='Trajectory '+r'$\ddot{q}^{m}$');
-lege2=mpatches.Patch(color='orange',label='Trajectory '+r'$\ddot{q}^{M}$');
-lege3 = mpatches.Patch(color='green',alpha=0.25,label='Minimum viable area');
-ax1.legend(handles=[lege1,lege2,lege3], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+lege1=mpatches.Patch(color='red',alpha=0.25,label='Not Viable');
+lege2=mpatches.Patch(color='green',alpha=0.25,label='Viable');
+lege3=mpatches.Patch(color='green',ls='--',label='Inner approx');
+lege4=mpatches.Patch(color='yellow',ls='--',label='Modified areas');
+ax1.legend(handles=[lege1,lege2,lege3,lege4], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
 
 L3 =[]
 L1 =[]
@@ -192,9 +258,12 @@ while ( L != []):
             if (new_area3 in L3):
                 if ((abs(new_area1[1]-new_area1[0])<=min_q or abs(new_area1[3]-new_area1[2])<=min_dq) or (abs(new_area3[1]-new_area3[0])<=min_q or abs(new_area3[3]-new_area3[2])<=min_dq)):
                     R.remove(R[-1])
-                    L1.remove(new_area1)
-                    L3.remove(new_area3) 
-                    Saved_acc.remove(acc)
+                    
+                    L3.remove(new_area3)
+                    if (new_area1 in L1): 
+                        L1.remove(new_area1)
+                    if (acc in Saved_acc):
+                        Saved_acc.remove(acc)
                     L3_trig=1
                     
             if (L3 != []):    
@@ -623,10 +692,17 @@ ax1.set_xlabel(r'$q$ $[rad]$');
 # ax1.legend(handles=[lege1,lege2,lege3,lege4], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
 # ax1.legend(handles=[lege3,lege4], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
 
-lege1=mpatches.Patch(color='blue',label='Trajectory '+r'$\ddot{q}^{m}$');
-lege2=mpatches.Patch(color='orange',label='Trajectory '+r'$\ddot{q}^{M}$');
-lege3 = mpatches.Patch(color='green',alpha=0.25,label='Minimum viable area');
-ax1.legend(handles=[lege1,lege2,lege3], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+lege1=mpatches.Patch(color='red',alpha=0.25,label='Not Viable');
+lege2=mpatches.Patch(color='green',alpha=0.25,label='Viable');
+lege3=mpatches.Patch(color='green',ls='--',label='Inner approx');
+lege4=mpatches.Patch(color='yellow',ls='--',label='Modified areas');
+ax1.legend(handles=[lege1,lege2,lege3,lege4], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+#ax1.legend(handles=[lege3,lege4], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+
+# lege1=mpatches.Patch(color='blue',label='Trajectory '+r'$\ddot{q}^{m}$');
+# lege2=mpatches.Patch(color='orange',label='Trajectory '+r'$\ddot{q}^{M}$');
+# lege3 = mpatches.Patch(color='green',alpha=0.25,label='Minimum viable area');
+# ax1.legend(handles=[lege1,lege2,lege3], loc='upper center',bbox_to_anchor=(0.5, 1.0),bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
        
 # lege1=mpatches.Patch(color='yellow',label='Integrated Polytope');
 # lege3=mpatches.Patch(color='green',label='Viable Polytope');
@@ -692,6 +768,6 @@ for s in range(int(size(R)/4)):
 #plt.autoscale()
 plt.savefig('fig_'+str(int(min_size))+'_'+str(int(size(R)/4+size(R_ext)/4))+'.pdf', bbox_inches = "tight")
 
-os.system("cd "+GARBAGE_FOLDER+" | cat "+GARBAGE_FOLDER+"*.png | ffmpeg -framerate 2 -f image2pipe -i - "+GARBAGE_FOLDER+"output.mkv")
-os.system("thunar"+GARBAGE_FOLDER)
+os.system("cd "+GARBAGE_FOLDER+" | cat "+GARBAGE_FOLDER+"*.png | ffmpeg -framerate 4 -f image2pipe -i - "+GARBAGE_FOLDER+"output.avi")
+os.system("thunar "+GARBAGE_FOLDER)
 plt.show()

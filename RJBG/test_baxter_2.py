@@ -51,8 +51,8 @@ m2q = lambda M: np.concatenate([ M.translation,se3.Quaternion(M.rotation).coeffs
 
 ''' TEST PARAMETERS '''
 TEST_VIABILITY=0;
-TEST_RANDOM=1;
-TEST_STANDARD=0;
+TEST_RANDOM=0;
+TEST_STANDARD=1;
 ''' PLOT-RELATED USER PARAMETERS '''
 LW = 2;     # line width
 PLOT_END_EFFECTOR_POS = True;
@@ -75,7 +75,7 @@ os.makedirs(GARBAGE_FOLDER);
 
 ''' CONTROLLER USER PARAMETERS '''
 CTRL_LAW = 'IK_QP'; #'IK_QP', 'IK'
-ACC_BOUNDS_TYPE = 'VIAB'; #'VIAB', 'NAIVE' , 'VIAB_CLASSIC'
+ACC_BOUNDS_TYPE = 'NAIVE'; #'VIAB', 'NAIVE' , 'VIAB_CLASSIC'
 CONSTRAIN_JOINT_TORQUES = False;
 END_EFFECTOR_NAME = 'left_w2'; #'left_w2'; left_wrist
 W_POSTURE = 1.0e-3; # 1e-3

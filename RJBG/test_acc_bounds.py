@@ -21,6 +21,7 @@ from acc_bounds_util import computeAccLimitsFromPosLimits
 from inequalities_probability import InequalitiesProbability
 import sys
 import math
+import matplotlib.patches as mpatches
 
 def computeControlTransitionMatrix(A, B, T):
     n = B.shape[0];
@@ -90,21 +91,21 @@ TEST_MIN_ACC = False;    # if true select always the minimum acceleration possib
 TEST_MED_ACC = False;    # if true select always the average of max and min acc
 TEST_MED_POS_ACC = True;    # if true select always the average of max and min acc imposed by pos bounds (saturated if necessary)
 PLOT_STATE_SPACE = True;
-PLOT_STATE_SPACE_DECRE = True;
-PLOT_STATE_SPACE_PADOIS = True;
-PLOT_STATE_SPACE_PROBABILITY = True;
-PLOT_SIMULATION_RESULTS = True;
+PLOT_STATE_SPACE_DECRE = False;
+PLOT_STATE_SPACE_PADOIS = False;
+PLOT_STATE_SPACE_PROBABILITY = False;
+PLOT_SIMULATION_RESULTS = False;
 qMax    = 2.0;
 qMin    = -2.0;
 MAX_VEL = 5.0;
 MAX_ACC = 10.0;
-q0      =  0.0;
-dq0     =  0.0;
+q0      =  1.75;
+dq0     =  4.50;
 N_TESTS = 20;
-DT = 0.10;
+DT = 0.010;
 VIABILITY_MARGIN = 1e10; # minimum margin to leave between ddq and its bounds found through viability
 error_trigger = 0.0
-E=0.33*MAX_ACC;
+E=0.00*MAX_ACC;
 ''' State in which acc bounds from pos are stricter than acc bounds from viability '''
 #q0 = -0.086850;
 #dq0 = -0.093971;
@@ -375,29 +376,29 @@ if(PLOT_STATE_SPACE_PROBABILITY):
 if(PLOT_STATE_SPACE):    
     (f,ax) = create_empty_figure(1,1, [0,0]);
 
-    # plot viability constraints
-    qMid = 0.5*(qMin+qMax);
-    q_mid_2_max = np.arange(qMid, qMax+Q_INTERVAL, Q_INTERVAL);
-    dq_viab_pos = np.sqrt(np.max([np.zeros(q_mid_2_max.shape),2*MAX_ACC*(qMax-q_mid_2_max)],0));
-    line_viab, = ax.plot(q_mid_2_max, dq_viab_pos, 'r--');
-    q_min_2_mid = np.arange(qMid, qMin-Q_INTERVAL, -Q_INTERVAL);
-    dq_viab_neg = -np.sqrt(np.max([np.zeros(q_min_2_mid.shape),2*MAX_ACC*(q_min_2_mid-qMin)],0));
-    ax.plot(q_min_2_mid, dq_viab_neg, 'r--');
+    # # plot viability constraints
+    # qMid = 0.5*(qMin+qMax);
+    # q_mid_2_max = np.arange(qMid, qMax+Q_INTERVAL, Q_INTERVAL);
+    # dq_viab_pos = np.sqrt(np.max([np.zeros(q_mid_2_max.shape),2*MAX_ACC*(qMax-q_mid_2_max)],0));
+    # line_viab, = ax.plot(q_mid_2_max, dq_viab_pos, 'r--');
+    # q_min_2_mid = np.arange(qMid, qMin-Q_INTERVAL, -Q_INTERVAL);
+    # dq_viab_neg = -np.sqrt(np.max([np.zeros(q_min_2_mid.shape),2*MAX_ACC*(q_min_2_mid-qMin)],0));
+    # ax.plot(q_min_2_mid, dq_viab_neg, 'r--');
     
-    # plot implicit constraints
-    t_max = np.sqrt((qMax-qMin)/MAX_ACC);
-    t = np.arange(0, t_max, 0.001);
-    q_plot = qMax - 0.5*(t**2)*MAX_ACC;
-    dq_plot = -t*MAX_ACC;
-    line_impl, = ax.plot(q_plot,dq_plot, 'b--');
-    q_plot = qMin + 0.5*(t**2)*MAX_ACC;
-    dq_plot = t*MAX_ACC;
-    ax.plot(q_plot,dq_plot, 'b--');
+    # # plot implicit constraints
+    # t_max = np.sqrt((qMax-qMin)/MAX_ACC);
+    # t = np.arange(0, t_max, 0.001);
+    # q_plot = qMax - 0.5*(t**2)*MAX_ACC;
+    # dq_plot = -t*MAX_ACC;
+    # line_impl, = ax.plot(q_plot,dq_plot, 'b--');
+    # q_plot = qMin + 0.5*(t**2)*MAX_ACC;
+    # dq_plot = t*MAX_ACC;
+    # ax.plot(q_plot,dq_plot, 'b--');
     
-    dq_viab_neg[np.where(dq_viab_neg < -MAX_VEL)[0]] = -MAX_VEL;
-    dq_viab_pos[np.where(dq_viab_pos >  MAX_VEL)[0]] =  MAX_VEL;
-    ax.fill_between(q_min_2_mid, dq_viab_neg, -1.0*dq_viab_neg, alpha=0.25, linewidth=0, facecolor='green');
-    ax.fill_between(q_mid_2_max, -1.0*dq_viab_pos, dq_viab_pos, alpha=0.25, linewidth=0, facecolor='green');
+    # dq_viab_neg[np.where(dq_viab_neg < -MAX_VEL)[0]] = -MAX_VEL;
+    # dq_viab_pos[np.where(dq_viab_pos >  MAX_VEL)[0]] =  MAX_VEL;
+    # ax.fill_between(q_min_2_mid, dq_viab_neg, -1.0*dq_viab_neg, alpha=0.25, linewidth=0, facecolor='green');
+    # ax.fill_between(q_mid_2_max, -1.0*dq_viab_pos, dq_viab_pos, alpha=0.25, linewidth=0, facecolor='green');
     
     # plot velocity bounds
     line_vel, = ax.plot([qMin, qMax], [MAX_VEL, MAX_VEL], 'k--');
@@ -419,59 +420,65 @@ if(PLOT_STATE_SPACE):
 #            q_plot[i] = min(p_floor, p_ceil);
 #        line_decre2, = ax.plot(q_plot,dq_plot, 'y--');
         
-    if(PLOT_STATE_SPACE_DECRE):
-        q_plot = np.arange(qMin, qMax+Q_INTERVAL, Q_INTERVAL);
-        dq_plot = np.zeros(q_plot.shape);
-        for i in range(dq_plot.shape[0]):
-            n = np.sqrt(max(0, 2*MAX_ACC*(qMax-q_plot[i]))) / (MAX_ACC*DT);
-            n_floor = math.floor(n);
-            n_ceil = math.ceil(n);
-            if(n_floor==0):
-                dq_plot[i] = 0;
-            else:
-                p_floor = (qMax-q_plot[i])/(n_floor*DT) + 0.5*(n_floor-1)*MAX_ACC*DT;
-                p_ceil  = (qMax-q_plot[i])/(n_ceil*DT) + 0.5*(n_ceil-1)*MAX_ACC*DT;
-                dq_plot[i] = min(p_floor, p_ceil);
-        line_decre, = ax.plot(q_plot,dq_plot, 'y--');
+    # if(PLOT_STATE_SPACE_DECRE):
+    #     q_plot = np.arange(qMin, qMax+Q_INTERVAL, Q_INTERVAL);
+    #     dq_plot = np.zeros(q_plot.shape);
+    #     for i in range(dq_plot.shape[0]):
+    #         n = np.sqrt(max(0, 2*MAX_ACC*(qMax-q_plot[i]))) / (MAX_ACC*DT);
+    #         n_floor = math.floor(n);
+    #         n_ceil = math.ceil(n);
+    #         if(n_floor==0):
+    #             dq_plot[i] = 0;
+    #         else:
+    #             p_floor = (qMax-q_plot[i])/(n_floor*DT) + 0.5*(n_floor-1)*MAX_ACC*DT;
+    #             p_ceil  = (qMax-q_plot[i])/(n_ceil*DT) + 0.5*(n_ceil-1)*MAX_ACC*DT;
+    #             dq_plot[i] = min(p_floor, p_ceil);
+    #     line_decre, = ax.plot(q_plot,dq_plot, 'y--');
         
-        q_plot = np.arange(qMax, qMin-Q_INTERVAL, -Q_INTERVAL);
-        dq_plot = np.zeros(q_plot.shape);
-        for i in range(dq_plot.shape[0]):
-            s = np.sqrt(max(0, 2*MAX_ACC*(q_plot[i]-qMin))) / (MAX_ACC*DT);
-            dq_plot[i] = ((qMin-q_plot[i]) - 0.5*(s**2-s)*MAX_ACC*DT*DT) / ((s+1)*DT);
-        #ax.plot(q_plot,dq_plot, 'g--');
+    #     q_plot = np.arange(qMax, qMin-Q_INTERVAL, -Q_INTERVAL);
+    #     dq_plot = np.zeros(q_plot.shape);
+    #     for i in range(dq_plot.shape[0]):
+    #         s = np.sqrt(max(0, 2*MAX_ACC*(q_plot[i]-qMin))) / (MAX_ACC*DT);
+    #         dq_plot[i] = ((qMin-q_plot[i]) - 0.5*(s**2-s)*MAX_ACC*DT*DT) / ((s+1)*DT);
+    #     #ax.plot(q_plot,dq_plot, 'g--');
      
     # plot Padois constraints
-    if(PLOT_STATE_SPACE_PADOIS):
-        q_plot = np.arange(qMin, qMax+Q_INTERVAL, Q_INTERVAL);
-        dq_plot = np.zeros(q_plot.shape);
-        for i in range(dq_plot.shape[0]):
-            s = np.sqrt(max(0, 2*MAX_ACC*(qMax-q_plot[i]))) / (MAX_ACC*DT);
-            dq_plot[i] = ((qMax-q_plot[i]) + 0.5*(s**2-s)*MAX_ACC*DT*DT) / ((s+1)*DT);
-        line_padois, = ax.plot(q_plot,dq_plot, 'g--');
+    # if(PLOT_STATE_SPACE_PADOIS):
+    #     q_plot = np.arange(qMin, qMax+Q_INTERVAL, Q_INTERVAL);
+    #     dq_plot = np.zeros(q_plot.shape);
+    #     for i in range(dq_plot.shape[0]):
+    #         s = np.sqrt(max(0, 2*MAX_ACC*(qMax-q_plot[i]))) / (MAX_ACC*DT);
+    #         dq_plot[i] = ((qMax-q_plot[i]) + 0.5*(s**2-s)*MAX_ACC*DT*DT) / ((s+1)*DT);
+    #     line_padois, = ax.plot(q_plot,dq_plot, 'g--');
         
-        q_plot = np.arange(qMax, qMin-Q_INTERVAL, -Q_INTERVAL);
-        dq_plot = np.zeros(q_plot.shape);
-        for i in range(dq_plot.shape[0]):
-            s = np.sqrt(max(0, 2*MAX_ACC*(q_plot[i]-qMin))) / (MAX_ACC*DT);
-            dq_plot[i] = ((qMin-q_plot[i]) - 0.5*(s**2-s)*MAX_ACC*DT*DT) / ((s+1)*DT);
-        ax.plot(q_plot,dq_plot, 'g--');
+    #     q_plot = np.arange(qMax, qMin-Q_INTERVAL, -Q_INTERVAL);
+    #     dq_plot = np.zeros(q_plot.shape);
+    #     for i in range(dq_plot.shape[0]):
+    #         s = np.sqrt(max(0, 2*MAX_ACC*(q_plot[i]-qMin))) / (MAX_ACC*DT);
+    #         dq_plot[i] = ((qMin-q_plot[i]) - 0.5*(s**2-s)*MAX_ACC*DT*DT) / ((s+1)*DT);
+    #     ax.plot(q_plot,dq_plot, 'g--');
     
-        leg = ax.legend([line_viab, line_padois, line_decre, line_impl, line_pos],
-                ['Viability', 'Padois', 'Decre',
-                'Implicit pos-acc', 
-                'Pos-vel bounds'],
-                bbox_to_anchor=(-0.1, 1.02, 1.2, .102), loc=2, ncol=3, mode="expand", borderaxespad=0.);
-    else:
-        leg = ax.legend([line_viab, line_impl, line_pos],
-                ['Viability', 
-                'Implicit pos-acc', 
-                'Pos-vel bounds'],
-                bbox_to_anchor=(-0.1, 1.02, 1.2, .102), loc=2, ncol=3, mode="expand", borderaxespad=0.);
-    leg.get_frame().set_alpha(0.6);
+    #     leg = ax.legend([line_viab, line_padois, line_decre, line_impl, line_pos],
+    #             ['Viability', 'Padois', 'Decre',
+    #             'Implicit pos-acc', 
+    #             'Pos-vel bounds'],
+    #             bbox_to_anchor=(-0.1, 1.02, 1.2, .102), loc=2, ncol=3, mode="expand", borderaxespad=0.);
+    # else:
+    #     leg = ax.legend([line_viab, line_impl, line_pos],
+    #             ['Viability', 
+    #             'Implicit pos-acc', 
+    #             'Pos-vel bounds'],
+    #             bbox_to_anchor=(-0.1, 1.02, 1.2, .102), loc=2, ncol=3, mode="expand", borderaxespad=0.);
+    # leg.get_frame().set_alpha(0.6);
     
     
-    
+    lege1=mpatches.Patch(color='blue',label='Implicit pos-acc');
+    lege2=mpatches.Patch(color='red',label='Viability');
+    lege3=mpatches.Patch(color='black',label='Pos-vel bounds');
+    lege4=mpatches.Patch(color='yellow',label='Viability Robust');
+    lege5=mpatches.Patch(color='green',label='Implicit pos-acc Robust');
+    ax.legend(handles=[lege1,lege2,lege3], loc='upper center',bbox_to_anchor=(0.5, 1.0),
+                bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
     # plot trajectory
     ax.plot(q,dq,'k x');
 
@@ -480,9 +487,16 @@ if(PLOT_STATE_SPACE):
     ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
     ax.set_xlim([1.1*qMin, 1.1*qMax]);
     ax.set_ylim([-1.1*max_vel_from_pos_acc_bounds, 1.1*max_vel_from_pos_acc_bounds]);
-    ax.set_xlabel(r'$q$');
-    ax.set_ylabel(r'$\dot{q}$');
-        
+    #ax.set_xlabel(r'$q$');
+    #ax.set_ylabel(r'$\dot{q}$');
+    
+    # ax.set_xlim([qMin,qMax])
+    ax.set_ylim([-MAX_VEL-0.025,MAX_VEL+0.025])
+    
+    ax.annotate(r'$q$', xy=(0.485, 0), ha='left', va='top', xycoords='axes fraction', fontsize=60)
+    ax.annotate(r'$\dot{q}$', xy=(0, 0.61), ha='left', va='top', xycoords='axes fraction', fontsize=60)
+    plt.savefig('/home/erik/Desktop/Viab_pres_2.png')
+    
 
     
 if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
