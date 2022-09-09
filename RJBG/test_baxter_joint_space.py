@@ -16,6 +16,9 @@ from math import sqrt
 from time import sleep
 from numpy.random import random
 
+from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes 
+from mpl_toolkits.axes_grid1.inset_locator import mark_inset
+
 import plot_utils as plut
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -54,18 +57,18 @@ q2m = lambda q: se3.SE3( se3.Quaternion(q[6,0],q[3,0],q[4,0],q[5,0]).array(), q[
 m2q = lambda M: np.vstack([ M.translation,se3.Quaternion(M.rotation).coeffs() ])
 
 ''' PLOT-RELATED USER PARAMETERS '''
-LW = 4;     # line width
+LW = 2;     # line width
 LINE_ALPHA = 1.0;
 LEGEND_ALPHA = 1.0;
 line_styles     =["c-", "b--", "g-.", "k:", "m-"];
 PLOT_JOINT_POS_VEL_ACC = True;
 PLOT_STATE_SPACE = 1;
 Q_INTERVAL = 0.001; # the range of possible angles is sampled with this step for plotting
-TEST_STANDARD = 0;
-TEST_VIABILITY=1;
+TEST_STANDARD = 1;
+TEST_VIABILITY=0;
 TEST_RANDOM=0;
 PLAY_TRAJECTORY_ONLINE = False;
-PLAY_TRAJECTORY_AT_THE_END = True;
+PLAY_TRAJECTORY_AT_THE_END = False;
 CAPTURE_IMAGES = False;
 plut.SAVE_FIGURES = True;
 PLOT_SINGULAR = 0;
@@ -110,15 +113,15 @@ TEST_NAME = ACC_BOUNDS_TYPE+'_dt_'+str((DT_SAFE/DT).astype(int))[2:-1].replace('
 
 robot = BaxterWrapper();
 robot.initViewer(loadModel=False)
-robot.loadViewerModel( "pinocchio");
-robot.viewer.gui.setCameraTransform('python-pinocchio',[3.5000033378601074, -5.8143712067249e-07, 6.62247678917538e-09, 0.49148452281951904, 0.5107253193855286, 0.4845828115940094, 0.5126227140426636]); #[3.5000033378601074, -7.042121978884097e-07, -5.638392508444667e-07, 0.5374045968055725, 0.5444704294204712, 0.4312002956867218, 0.47834569215774536])
+# robot.loadViewerModel( "pinocchio");
+# robot.viewer.gui.setCameraTransform('python-pinocchio',[3.5000033378601074, -5.8143712067249e-07, 6.62247678917538e-09, 0.49148452281951904, 0.5107253193855286, 0.4845828115940094, 0.5126227140426636]); #[3.5000033378601074, -7.042121978884097e-07, -5.638392508444667e-07, 0.5374045968055725, 0.5444704294204712, 0.4312002956867218, 0.47834569215774536])
 #robot.initDisplay(loadModel=False)
 #robot.loadDisplayModel("world/pinocchio", "pinocchio", MODELPATH)
 
-robot.viewer.gui.setLightingMode('world/floor', 'OFF');
+# robot.viewer.gui.setLightingMode('world/floor', 'OFF');
 #print robot.model
 
-robot.display(q0);           # Display the robot in Gepetto-Viewer.
+# robot.display(q0);           # Display the robot in Gepetto-Viewer.
 
 NQ = q0.shape[0];
 
@@ -308,9 +311,11 @@ for j in range(7):
             ax_acc.step(time[:-1], ddq[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt);
             #ax_acc.step(time[:-1], ddq_des[j,:].squeeze(), 'v:', linewidth=LW);
             if(NDT==1):
-                ax_acc.step(time[:-1], ddq_lb[j,:,nt], 'y--',linewidth=LW/2);
-                ax_acc.step(time[:-1], ddq_ub[j,:,nt], 'g--',linewidth=LW/2);
-        
+                ax_acc.step(time[:-1], ddq_lb[j,:,nt],'g--', color='orange', linewidth=LW);
+                ax_acc.step(time[:-1], ddq_ub[j,:,nt], 'g--',linewidth=LW);
+
+            
+
         lege1=mpatches.Patch(color='orange',label='Acceleration lower bound j'+str(j));
         lege2=mpatches.Patch(color='blue',label='Acceleration j'+str(j));
         lege3=mpatches.Patch(color='green',label='Acceleration upper bound j'+str(j));
@@ -403,8 +408,8 @@ for j in range(7):
                 line_ddq=ax_accc.step(time[:-1], ddq[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt,label='Acceleration');
                 line_ddq_des=ax_accc.step(time[:-1], ddq_des[j,:].squeeze(), 'b:', linewidth=LW,label='Acceleration');
                 if(NDT==1):
-                    line_lb_bound=ax_accc.step(time[:-1], ddq_lb[j,:,nt], 'y--',linewidth=LW/2);
-                    line_ub_bound=ax_accc.step(time[:-1], ddq_ub[j,:,nt], 'g--',linewidth=LW/2);
+                    line_lb_bound=ax_accc.step(time[:-1], ddq_lb[j,:,nt], 'orange--',linewidth=LW);
+                    line_ub_bound=ax_accc.step(time[:-1], ddq_ub[j,:,nt], 'g--',linewidth=LW);
             #ax_accc.set_title('Acceleration joint '+str(j));
             #leg = ax_accc.legend([up_lim],['l']);
             lege1=mpatches.Patch(color='orange',label='Acceleration lower bound j'+str(j));

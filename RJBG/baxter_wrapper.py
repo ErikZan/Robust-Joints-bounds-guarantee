@@ -8,7 +8,7 @@ from time import time
 import os
 
 # Change following your setup.
-MODELPATH = ['/home/erik/baxter_wrapper/baxter_common-master/',]
+MODELPATH = ['/home/erik/code_ARC/Thesis/Robust-Joints-bounds-guarantee/baxter_common-master/baxter_common-master/',]
 
 NQ_OFFSET = 1
 NV_OFFSET = 1

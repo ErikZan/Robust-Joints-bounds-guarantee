@@ -52,12 +52,12 @@ m2q = lambda M: np.concatenate([ M.translation,se3.Quaternion(M.rotation).coeffs
 
 ''' TEST PARAMETERS '''
 TEST_VIABILITY=0;
-TEST_RANDOM=1;
-TEST_STANDARD=0;
+TEST_RANDOM=0;
+TEST_STANDARD=1;
 ''' PLOT-RELATED USER PARAMETERS '''
 LW = 2;     # line width
-PLOT_END_EFFECTOR_POS = True;
-PLOT_END_EFFECTOR_ACC = True;
+PLOT_END_EFFECTOR_POS = False;
+PLOT_END_EFFECTOR_ACC = False;
 PLOT_JOINT_POS_VEL_ACC_TAU = 0;
 Q_INTERVAL = 0.001; # the range of possible angles is sampled with this step for plotting
 PLAY_TRAJECTORY_ONLINE = False;
@@ -80,10 +80,10 @@ ACC_BOUNDS_TYPE = 'VIAB'; #'VIAB', 'NAIVE' , 'VIAB_CLASSIC'
 CONSTRAIN_JOINT_TORQUES = False;
 END_EFFECTOR_NAME = 'left_w2'; #'left_w2'; left_wrist
 W_POSTURE = 1.0e-3; # 1e-3
-T = 4.0;    # total simulation time
-DT = 0.01;  # time step
+T = 3.0;    # total simulation time
+DT = 0.05;  # time step
 DT_SAFE =1.01*DT; # 2*DT;
-kp = 10; # 10 default , 100 improve performance with error
+kp = 1000; # 10 default , 100 improve performance with error
 kp_post = 10;
 kd = 2*sqrt(kp);
 kd_post = 2*sqrt(kp_post);
@@ -111,20 +111,24 @@ Q_POSTURE[8:] = 0.0;
 TEST_NAME = 'baxter_'+ACC_BOUNDS_TYPE+'_dt_'+str(int(DT_SAFE/DT));
 
 M_des = q2m(x_des);
+
+
+
 robot = BaxterWrapper();
 robot.initViewer(loadModel=False)
-robot.loadViewerModel( "pinocchio"); #, MODELPATH)
-robot.viewer.gui.setCameraTransform('python-pinocchio',[4.000033378601074, -5.577442721005355e-07, -8.179827659660077e-07, 0.5338324904441833, 0.5607414841651917, 0.4348451793193817, 0.45989298820495605]); #[3.5000033378601074, -7.042121978884097e-07, -5.638392508444667e-07, 0.5374045968055725, 0.5444704294204712, 0.4312002956867218, 0.47834569215774536])
-robot.viewer.gui.setLightingMode('world/floor', 'OFF');
-robot.viewer.gui.setVisibility('world/floor', 'OFF');
+# robot.loadViewerModel( "pinocchio"); #, MODELPATH)
+# robot.viewer.gui.setCameraTransform('python-pinocchio',[4.000033378601074, -5.577442721005355e-07, -8.179827659660077e-07, 0.5338324904441833, 0.5607414841651917, 0.4348451793193817, 0.45989298820495605]); #[3.5000033378601074, -7.042121978884097e-07, -5.638392508444667e-07, 0.5374045968055725, 0.5444704294204712, 0.4312002956867218, 0.47834569215774536])
+# robot.viewer.gui.setLightingMode('world/floor', 'OFF');
+# robot.viewer.gui.setVisibility('world/floor', 'OFF');
 assert(robot.model.existFrame(END_EFFECTOR_NAME))
 #robot.viewer.gui.setBackgroundColor(robot.windowID, BACKGROUND_COLOR);
 #print robot.model
 
-robot.display(q0);           # Display the robot in Gepetto-Viewer.
+# robot.display(q0);           # Display the robot in Gepetto-Viewer.
 
 #IDEE = robot.model.getBodyId(END_EFFECTOR_NAME); # Access to the index of the end-effector
 IDEE = robot.model.getJointId(END_EFFECTOR_NAME); # Access to the index of the end-effector
+
 
 print('Initial e-e- pose: x(0)', m2q(robot.position(q0,IDEE)).T);
 print('Desired e-e pose: x_des', x_des.T)
@@ -148,9 +152,15 @@ ddx_des = np.zeros((6,NT));
 ddq_lb = np.zeros((NQ,NT-1));
 ddq_ub = np.zeros((NQ,NT-1));
 
+qdes = np.array([ 2.0 , -0.0,  0. ,  0.0,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ]) ;# q0 = np.array([ 0. , -0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. , 0. ,  0. ,  0. ])
+q = np.zeros((NQ,NT));
+M_des = robot.position(qdes[:],IDEE);
+
+
 ''' initialize '''
 q[:,0] = q0;
 M = robot.position(q[:,0],IDEE);
+print(M)
 J = robot.jacobian(q[:,0],IDEE); # always zero ??? why ???
 dJdq = robot.dJdq(q[:,0], dq[:,0], IDEE);
 x[:,0] = m2q(M);
@@ -233,12 +243,12 @@ for t in range(NT-1):
 print('Final e-e pose x(T))', m2q(M).T);
 print('Difference between desired and measured e-e pose: M.inverse()*M_des', m2q(M.inverse()*M_des).T)
 
-if(PLAY_TRAJECTORY_AT_THE_END):
-    if(CAPTURE_IMAGES):
-        robot.startCapture(IMAGES_FILE_NAME,path=GARBAGE_FOLDER+'/img/');
-    robot.play(q, DT);
-    if(CAPTURE_IMAGES):
-        robot.stopCapture();
+# if(PLAY_TRAJECTORY_AT_THE_END):
+#     if(CAPTURE_IMAGES):
+#         robot.startCapture(IMAGES_FILE_NAME,path=GARBAGE_FOLDER+'/img/');
+#     robot.play(q, DT);
+#     if(CAPTURE_IMAGES):
+#         robot.stopCapture();
 
 time = np.arange(0, NT*DT, DT);
 if(PLOT_END_EFFECTOR_POS):
@@ -440,7 +450,7 @@ for j in range(1):
             ax_vel.plot([time[0], time[-1]], [-DQ_MAX[j], -DQ_MAX[j]], 'r--');
             ax_vel.set_ylabel(r'$\dot{q}$ [rad/s]');
             ax_vel.set_xlabel('Time [s]');
-            plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'vel_j'+str(j),1);
+            plut.saveFigureandParameterinDateFoFlder(GARBAGE_FOLDER,TEST_NAME+'vel_j'+str(j),1);
             
             # plot position
             (f, ax_pos) = create_empty_figure(1);
@@ -451,5 +461,5 @@ for j in range(1):
             ax_pos.set_xlabel('Time [s]');
             plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'acc_j'+str(j),1);
             
-#plt.show()
+# plt.show()
     

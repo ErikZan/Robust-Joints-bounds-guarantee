@@ -18,9 +18,14 @@ from acc_bounds_util_2e import DiscreteViabilityConstraints, isStateViable_2,isB
 from acc_bounds_util_2e import computeAccLimits_2
 from acc_bounds_util_2e import computeAccLimitsFromViability_2
 from acc_bounds_util_2e import computeAccLimitsFromPosLimits_2
+import datetime
+import os
 
 plut.SAVE_FIGURES = True; 
 EPS = 1e-10;
+DATE_STAMP=datetime.datetime.now().strftime("%m_%d__%H_%M_%S")
+GARBAGE_FOLDER='/home/erik/Desktop/FIGURES_T/'+DATE_STAMP+'/'
+os.makedirs(GARBAGE_FOLDER);
 
 '''qMax    = 0.5;
 qMin    = -0.5;
@@ -98,11 +103,32 @@ CF = ax.contourf(Q, DQ, Z_regions, 10, cmap=plt.get_cmap('Paired_r'));
 ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
 ax.set_xlabel(r'$q$');
 ax.set_ylabel(r'$\dot{q}$');
-ax.xaxis.set_ticks([qMin, qMax]);
-ax.yaxis.set_ticks([-MAX_VEL, 0, MAX_VEL]);
+ax.xaxis.set_ticks([0*qMin,0*qMax]);
+ax.yaxis.set_ticks([0, 0*MAX_VEL]);
 ax.set_ylim([-MAX_VEL, MAX_VEL]);
+
+# ax.text(0.1, 0.1, r'$2$', fontsize=15)
+ax.text(-0.40, -1.8, r'$0$', fontsize=50)
+ax.text(0.40, 1.5, r'$1$', fontsize=50)
+ax.text(0.40, 0.10, r'$2$', fontsize=50)
+ax.text(-0.2, 1.5, r'$3$', fontsize=50)
+ax.text(0.05, -0.1, r'$4$', fontsize=50)
+ax.text(0.33, 1.2, r'$5$', fontsize=50)
+
+ax.annotate('', xy=(0.485, 0.250), xytext=(0.425, 0.20),
+            arrowprops=dict(facecolor='black', shrink=0.025))
+
+f.canvas.draw()
+
+labels = [item.get_text() for item in ax.get_xticklabels()]
+labels[0] = r'$q_{min}$';
+
+ax.set_xticklabels(labels)
+
 #ax.set_title('Acc regions');
-plut.saveFigure('state_space_regions');
+# plut.saveFigure('state_space_regions');
+plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,'Regions',0)
+    
     
 plt.show();
     

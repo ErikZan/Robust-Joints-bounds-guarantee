@@ -25,6 +25,8 @@ import os
 import math
 import datetime
 import matplotlib.patches as mpatches
+from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes 
+from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 
 def computeControlTransitionMatrix(A, B, T):
     n = B.shape[0];
@@ -557,7 +559,7 @@ if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
         if((i+1)%SMALL_RATIO==0):
             j += 1;
     
-    ax[0].plot(t_small, q_small, linewidth=LW);
+    ax[0].plot(t_small, q_small, linewidth=LW,color='blue');
     ax[0].plot([0, t[-1]], [qMax, qMax], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
     ax[0].plot([0, t[-1]], [qMin, qMin], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
     #ax[0].set_title('position');
@@ -570,7 +572,7 @@ if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
     #ax[0].set_ylim([qMax-0.025*qMax, qMax+0.025*qMax])
     
     #print 't', t.shape, 'dq', dq.shape;
-    ax[1].plot(t, dq, linewidth=LW);
+    ax[1].plot(t, dq, linewidth=LW,color='blue');
     ax[1].plot([0, t[-1]], [MAX_VEL, MAX_VEL], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
     ax[1].plot([0, t[-1]], [-MAX_VEL, -MAX_VEL], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
     ax[1].set_ylim([np.min(dq)-0.1*MAX_VEL, np.max(dq)+0.1*MAX_VEL]);
@@ -584,7 +586,7 @@ if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
     ax[1].set_xlim([0, t[-1]]);
     
     
-    ax[2].step(t, np.hstack((ddq[0], ddq)), linewidth=LW);
+    ax[2].step(t, np.hstack((ddq[0], ddq)), linewidth=LW,color='blue');
     ax[2].plot([0, t[-1]], [MAX_ACC, MAX_ACC], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
     ax[2].plot([0, t[-1]], [-MAX_ACC, -MAX_ACC], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);# 
     ax[2].step(t, np.hstack((ddqLB[0], ddqLB)),'g--',color='green', linewidth=LW);
@@ -613,8 +615,26 @@ if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
                     bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
     #ax[0].set_title('Position')
     #plut.saveFigure('max_acc_traj_'+str(E/MAX_ACC*100)+'_'+str(int(1e3*DT))+'_ms');
+
+    x1 = 1.5
+    x2 = 2.75
+
+    # select y-range for zoomed region
+    y1 = 2.01
+    y2 = 1.95
+
+    # Make the zoom-in plot:
+    axins = zoomed_inset_axes(ax[0], 4, loc=1) # zoom = 2
+    axins.set_aspect(5)
+    axins.plot(t_small, q_small, linewidth=LW,color='blue')
+    axins.plot([0, t[-1]], [qMax, qMax], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
+    axins.set_xlim(x1, x2)
+    axins.set_ylim(y2, y1)
+    plt.xticks(visible=False)
+    plt.yticks(visible=False)
+    mark_inset(ax[0], axins, loc1=2, loc2=4, fc="none", ec="0.5")
     
-    plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,'max_acc',PARAMS)
+    plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,'Single'+'_'+str(TEST_MODE)+'_'+str(TEST_MAX_ACC)+'_'+str(TEST_RANDOM)+'_NZoom',PARAMS)
     
 if(PLOT_SINGULAR):
     if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
