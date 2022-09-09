@@ -32,8 +32,8 @@ from acc_bounds_util_2e import computeMultiAccLimits,computeMultiAccLimits_3,isB
 from baxter_wrapper import BaxterWrapper, Q_MIN, Q_MAX, DQ_MAX, TAU_MAX, MODELPATH
                 
 def plot_bounded_joint_quantity(time, x, X_MIN, X_MAX, name, xlabel='', ylabel=''):
-    mpl.rcParams['font.size']       = 30;
-    mpl.rcParams['axes.labelsize']  = 30;
+    mpl.rcParams['font.size']       = 40;
+    mpl.rcParams['axes.labelsize']  = 40;
     f, ax = plut.create_empty_figure(4,2);
     ax = ax.reshape(8);
     for j in range(7):
@@ -61,8 +61,8 @@ LW = 2;     # line width
 LINE_ALPHA = 1.0;
 LEGEND_ALPHA = 1.0;
 line_styles     =["c-", "b--", "g-.", "k:", "m-"];
-PLOT_JOINT_POS_VEL_ACC = True;
-PLOT_STATE_SPACE = 1;
+PLOT_JOINT_POS_VEL_ACC = False;
+PLOT_STATE_SPACE = 0;
 Q_INTERVAL = 0.001; # the range of possible angles is sampled with this step for plotting
 TEST_STANDARD = 1;
 TEST_VIABILITY=0;
@@ -269,28 +269,33 @@ for j in range(7):
         ax_pos = ax[0];
         ax_vel = ax[1];
         ax_acc = ax[2];
+        plut.setAxisFontSize(ax_pos,40)
+        plut.setAxisFontSize(ax_vel,40)
+        plut.setAxisFontSize(ax_acc,40)
 #        plut.movePlotSpines(ax[0], [qMin, 0]);
-        ax_pos.plot([time[0], time[-1]], [Q_MAX[j], Q_MAX[j]], 'r--');
-        ax_pos.plot([time[0], time[-1]], [Q_MIN[j], Q_MIN[j]], 'r--');
-        ax_pos.set_ylabel(r'$q$ [rad]');
+        ax_pos.plot([time[0], time[-1]], [Q_MAX[j], Q_MAX[j]], 'r--',linewidth = LW);
+        ax_pos.plot([time[0], time[-1]], [Q_MIN[j], Q_MIN[j]], 'r--',linewidth = LW);
+        ax_pos.set_ylabel(r'$q$ [rad]',fontsize = 40);
         ax_pos.yaxis.set_ticks([Q_MIN[j], Q_MAX[j]]);
         ax_pos.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
         ax_pos.set_ylim([np.min(q[j,:,:]), 1.1*np.max(q[j,:,:])]);
+        ax_pos.set_xlim([0, T]);
         
         # plot velocity
 #        plut.movePlotSpines(ax_vel, [0, 0]);
-        ax_vel.plot([time[0], time[-1]], [DQ_MAX[j], DQ_MAX[j]], 'r--');
-        ax_vel.plot([time[0], time[-1]], [-DQ_MAX[j], -DQ_MAX[j]], 'r--');
-        ax_vel.set_ylabel(r'$\dot{q}$ [rad/s]');
+        ax_vel.plot([time[0], time[-1]], [DQ_MAX[j], DQ_MAX[j]], 'r--',linewidth = LW);
+        ax_vel.plot([time[0], time[-1]], [-DQ_MAX[j], -DQ_MAX[j]], 'r--',linewidth = LW);
+        ax_vel.set_ylabel(r'$\dot{q}$ [rad/s]',fontsize = 40);
         ax_vel.yaxis.set_ticks([DQ_MAX[j], DQ_MAX[j]]);
         ax_vel.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
         ax_vel.set_ylim([-1.1*DQ_MAX[j], 1.1*DQ_MAX[j]]);
+        ax_vel.set_xlim([0, T]);
 
         # plot acceleration
 #        plut.movePlotSpines(ax_acc, [0, 0]);        
-        ax_acc.plot([time[0], time[-1]], [ DDQ_MAX[j],  DDQ_MAX[j]], 'r--');
-        ax_acc.plot([time[0], time[-1]], [-DDQ_MAX[j], -DDQ_MAX[j]], 'r--');
-        ax_acc.set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
+        ax_acc.plot([time[0], time[-1]], [ DDQ_MAX[j],  DDQ_MAX[j]], 'r--',linewidth = LW);
+        ax_acc.plot([time[0], time[-1]], [-DDQ_MAX[j], -DDQ_MAX[j]], 'r--',linewidth = LW);
+        ax_acc.set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]',fontsize = 40);
         ax_acc.yaxis.set_ticks([-DDQ_MAX[j], DDQ_MAX[j]]);
         ax_acc.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
         # if (np.min(ddq[j,:,:])<-DDQ_MAX[j] and np.max(ddq[j,:,:])>DDQ_MAX[j]):
@@ -304,24 +309,39 @@ for j in range(7):
             
         ax_acc.set_ylim([-1.4*DDQ_MAX[j], 1.4*DDQ_MAX[j]]);
         
-        ax[2].set_xlabel('Time [s]');
+        ax[2].set_xlabel('Time [s]',fontsize = 40);
+
+        ax_pos.text(T, Q_MAX[j], r'$q^{max}$', fontsize=40)
+        # ax_pos.text(T, Q_MIN[j], r'$q^{min}$', fontsize=40)
+        ax_pos.set_xlim([0, T]);
+
+        ax_vel.text(T, DQ_MAX[j], r'$\dot{q}^{max}$', fontsize=40)
+        # ax_vel.text(T, -DQ_MAX[j], r'$\dot{q}^{min}$', fontsize=40)
+        ax_vel.set_xlim([0, T]);
+
+        ax_acc.text(T, DDQ_MAX[j], r'$\ddot{q}^{max}$', fontsize=40)
+        # ax_acc.text(T, -DDQ_MAX[j], r'$\ddot{q}^{min}$', fontsize=40)
+        ax_acc.set_xlim([0, T]);
+        
         for nt in range(NDT):
             ax_pos.plot(time, q[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt, label=r'$\delta t=$'+str(int(DT_SAFE[nt]/DT))+'x');
             ax_vel.plot(time, dq[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt);
             ax_acc.step(time[:-1], ddq[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt);
             #ax_acc.step(time[:-1], ddq_des[j,:].squeeze(), 'v:', linewidth=LW);
-            if(NDT==1):
-                ax_acc.step(time[:-1], ddq_lb[j,:,nt],'g--', color='orange', linewidth=LW);
-                ax_acc.step(time[:-1], ddq_ub[j,:,nt], 'g--',linewidth=LW);
+            #if(NDT==1):
+            #    ax_acc.step(time[:-1], ddq_lb[j,:,nt],'g--', color='orange', linewidth=LW);
+            #    ax_acc.step(time[:-1], ddq_ub[j,:,nt], 'g--',linewidth=LW);
 
             
 
-        lege1=mpatches.Patch(color='orange',label='Acceleration lower bound j'+str(j));
-        lege2=mpatches.Patch(color='blue',label='Acceleration j'+str(j));
-        lege3=mpatches.Patch(color='green',label='Acceleration upper bound j'+str(j));
-        ax_acc.legend(handles=[lege1,lege3,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),
-                    bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
-        # Keep the main external value as bound for plot (only graphical things)        
+        #lege1=mpatches.Patch(color='orange',label='Acceleration lower bound j'+str(j));
+        #lege2=mpatches.Patch(color='blue',label='Acceleration j'+str(j));
+        #lege3=mpatches.Patch(color='green',label='Acceleration upper bound j'+str(j));
+        #ax_acc.legend(handles=[lege1,lege3,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),
+        #            bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=40 );
+        # Keep the main external value as bound for plot (only graphical things)  
+        # 
+              
        
         plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_j'+str(j)+'p_vel_acc',PARAMS);
         
@@ -390,7 +410,7 @@ for j in range(7):
 #           plut.movePlotSpines(ax_acc, [0, 0]);        
             up_lim=ax_accc.plot([time[0], time[-1]], [ DDQ_MAX[j],  DDQ_MAX[j]], 'r--');
             ax_accc.plot([time[0], time[-1]], [-DDQ_MAX[j], -DDQ_MAX[j]], 'r--');
-            ax_accc.set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
+            ax_accc.set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]',fontsize = 40);
             ax_accc.yaxis.set_ticks([-DDQ_MAX[j], DDQ_MAX[j]]);
             ax_accc.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
             if (np.min(ddq[j,:,:])<-DDQ_MAX[j] and np.max(ddq[j,:,:])>DDQ_MAX[j]):
@@ -407,16 +427,16 @@ for j in range(7):
             for nt in range(NDT):
                 line_ddq=ax_accc.step(time[:-1], ddq[j,:,nt].squeeze(), line_styles[nt], linewidth=LW, alpha=LINE_ALPHA**nt,label='Acceleration');
                 line_ddq_des=ax_accc.step(time[:-1], ddq_des[j,:].squeeze(), 'b:', linewidth=LW,label='Acceleration');
-                if(NDT==1):
-                    line_lb_bound=ax_accc.step(time[:-1], ddq_lb[j,:,nt], 'orange--',linewidth=LW);
-                    line_ub_bound=ax_accc.step(time[:-1], ddq_ub[j,:,nt], 'g--',linewidth=LW);
+                #if(NDT==1):
+                    #line_lb_bound=ax_accc.step(time[:-1], ddq_lb[j,:,nt], 'orange--',linewidth=LW);
+                    #line_ub_bound=ax_accc.step(time[:-1], ddq_ub[j,:,nt], 'g--',linewidth=LW);
             #ax_accc.set_title('Acceleration joint '+str(j));
             #leg = ax_accc.legend([up_lim],['l']);
-            lege1=mpatches.Patch(color='orange',label='Acceleration lower bound j'+str(j));
-            lege2=mpatches.Patch(color='blue',label='Acceleration j'+str(j));
-            lege3=mpatches.Patch(color='green',label='Acceleration upper bound j'+str(j));
-            ax_accc.legend(handles=[lege1,lege3,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),
-                    bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+            #lege1=mpatches.Patch(color='orange',label='Acceleration lower bound j'+str(j));
+            #lege2=mpatches.Patch(color='blue',label='Acceleration j'+str(j));
+            #lege3=mpatches.Patch(color='green',label='Acceleration upper bound j'+str(j));
+            #ax_accc.legend(handles=[lege1,lege3,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),
+            #        bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=40 );
             #ax_accc.legend()
             #leg.get_frame().set_alpha(0.6);            
             plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_ACC_j'+str(j),PARAMS);

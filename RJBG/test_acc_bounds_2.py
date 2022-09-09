@@ -65,12 +65,12 @@ EPS = 1e-10;
 # MAX and MIN are the only supported 
 TEST_MODE = 'VIAB_ROBUST' # VIAB_ROBUST  VIAB_CLASSIC
 TEST_DISCRETE_VIABILITY= 0# if true when velocity is postive add the positive bound value of disturbances, when negative the negative bound value
-TEST_MAX_ACC = 0;    # if true select always the maximum acceleration possible 
+TEST_MAX_ACC = 1;    # if true select always the maximum acceleration possible 
 TEST_MIN_ACC = 0;    # if true select always the minimum acceleration possible 
 TEST_MED_ACC = False;    # if true select always the average of max and min acc
 TEST_MED_POS_ACC = 0;    # if true select always the average of max and min acc imposed by pos bounds (saturated if necessary)
-TEST_RANDOM=1;
-PLOT_STATE_SPACE = True;
+TEST_RANDOM=0;
+PLOT_STATE_SPACE = False;
 PLOT_STATE_SPACE_DECRE = False;
 PLOT_STATE_SPACE_PADOIS = False;
 PLOT_STATE_SPACE_PROBABILITY = False;
@@ -544,7 +544,7 @@ if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
 #    mpl.rcParams['figure.figsize']      = 12, 6
     (f,ax) = create_empty_figure(3,1);
     t = np.arange(0, (N_TESTS+1)*DT, DT)[:N_TESTS+1]
-
+    
     SMALL_RATIO = 10;
     DT_SMALL = DT/SMALL_RATIO;
     t_small = np.arange(0, N_TESTS*DT+DT_SMALL, DT_SMALL);
@@ -560,21 +560,21 @@ if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
             j += 1;
     
     ax[0].plot(t_small, q_small, linewidth=LW,color='blue');
-    ax[0].plot([0, t[-1]], [qMax, qMax], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
-    ax[0].plot([0, t[-1]], [qMin, qMin], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
+    ax[0].plot([0, t[-1]], [qMax, qMax], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA,linewidth=LW);
+    ax[0].plot([0, t[-1]], [qMin, qMin], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA,linewidth=LW);
     #ax[0].set_title('position');
-    ax[0].set_ylabel(r'$q$ [rad]');
+    ax[0].set_ylabel(r'$q$ [rad]',fontsize=40);
     ax[0].set_xlim([0, t[-1]]);
     ax[0].set_ylim([np.min(q_small)-0.1, np.max(q_small)+0.1]);
     ax[0].yaxis.set_ticks([np.min(q_small), np.max(q_small)]);
     ax[0].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
     # to view view zoom
     #ax[0].set_ylim([qMax-0.025*qMax, qMax+0.025*qMax])
-    
+    plut.setAxisFontSize(ax[0],40)
     #print 't', t.shape, 'dq', dq.shape;
     ax[1].plot(t, dq, linewidth=LW,color='blue');
-    ax[1].plot([0, t[-1]], [MAX_VEL, MAX_VEL], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
-    ax[1].plot([0, t[-1]], [-MAX_VEL, -MAX_VEL], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
+    ax[1].plot([0, t[-1]], [MAX_VEL, MAX_VEL], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA,linewidth=LW);
+    ax[1].plot([0, t[-1]], [-MAX_VEL, -MAX_VEL], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA,linewidth=LW);
     ax[1].set_ylim([np.min(dq)-0.1*MAX_VEL, np.max(dq)+0.1*MAX_VEL]);
     if(np.max(dq)>0.0 and np.min(dq)<0):
         ax[1].yaxis.set_ticks([np.min(dq), np.max(dq)]);
@@ -582,20 +582,20 @@ if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
         ax[1].yaxis.set_ticks([np.min(dq), np.max(dq)]);
     ax[1].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
     #ax[1].set_title('velocity');
-    ax[1].set_ylabel(r'$\dot{q}$ [rad/s]');
+    ax[1].set_ylabel(r'$\dot{q}$ [rad/s]',fontsize=40);
     ax[1].set_xlim([0, t[-1]]);
     
-    
+    plut.setAxisFontSize(ax[1],40)
     ax[2].step(t, np.hstack((ddq[0], ddq)), linewidth=LW,color='blue');
-    ax[2].plot([0, t[-1]], [MAX_ACC, MAX_ACC], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
-    ax[2].plot([0, t[-1]], [-MAX_ACC, -MAX_ACC], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);# 
-    ax[2].step(t, np.hstack((ddqLB[0], ddqLB)),'g--',color='green', linewidth=LW);
-    ax[2].step(t, np.hstack((ddqUB[0], ddqUB)),'g--',color='orange', linewidth=LW)
+    ax[2].plot([0, t[-1]], [MAX_ACC, MAX_ACC], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA,linewidth=LW);
+    ax[2].plot([0, t[-1]], [-MAX_ACC, -MAX_ACC], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA,linewidth=LW);# 
+    #ax[2].step(t, np.hstack((ddqLB[0], ddqLB)),'g--',color='green', linewidth=LW);
+    #ax[2].step(t, np.hstack((ddqUB[0], ddqUB)),'g--',color='orange', linewidth=LW)
     #ax[2].plot(t[:-1], ddqLB, "--", color='red', alpha=plut.LINE_ALPHA);
     #ax[2].plot(t[:-1], ddqUB, "--", color='red', alpha=plut.LINE_ALPHA);
     #ax[2].set_title('acceleration');
-    ax[2].set_xlabel('Time [s]');
-    ax[2].set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
+    ax[2].set_xlabel('Time [s]',fontsize=40);
+    ax[2].set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]',fontsize=40);
     ax[2].set_xlim([0, t[-1]]);
     if (np.min(ddq)<-MAX_ACC and np.max(ddq)>MAX_ACC):
         ax[2].set_ylim([np.min(ddq)-0.15*MAX_ACC, np.max(ddq)+0.15*MAX_ACC]);
@@ -608,11 +608,15 @@ if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
         
     ax[2].yaxis.set_ticks([np.min(ddq), np.max(ddq)]);
     ax[2].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'));
-    lege1=mpatches.Patch(color='orange',label='Acceleration upper bound');
+    plut.setAxisFontSize(ax[2],40)
+    # removed for cleaner figure to re-enable 
+    #lege1=mpatches.Patch(color='orange',label='Acceleration upper bound');
     lege2=mpatches.Patch(color='blue',label='Acceleration');
-    lege3=mpatches.Patch(color='green',label='Acceleration lower bound');
-    ax[2].legend(handles=[lege1,lege3,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),
-                    bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+    #lege3=mpatches.Patch(color='green',label='Acceleration lower bound');
+    #ax[2].legend(handles=[lege1,lege3,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),
+                    #bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+
+    
     #ax[0].set_title('Position')
     #plut.saveFigure('max_acc_traj_'+str(E/MAX_ACC*100)+'_'+str(int(1e3*DT))+'_ms');
 
@@ -624,15 +628,38 @@ if(N_TESTS>2 and PLOT_SIMULATION_RESULTS):
     y2 = 1.95
 
     # Make the zoom-in plot:
-    axins = zoomed_inset_axes(ax[0], 4, loc=1) # zoom = 2
-    axins.set_aspect(5)
+    # if (TEST_MODE =='VIAB_ROBUST' ):
+    axins = zoomed_inset_axes(ax[0], 10, loc=10) # zoom = 2
+    axins.set_aspect(2)
     axins.plot(t_small, q_small, linewidth=LW,color='blue')
-    axins.plot([0, t[-1]], [qMax, qMax], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA);
+    axins.plot([0, t[-1]], [qMax, qMax], '--', color=plut.BOUNDS_COLOR, alpha=plut.LINE_ALPHA,linewidth=LW);
     axins.set_xlim(x1, x2)
     axins.set_ylim(y2, y1)
+    axins.set_facecolor('xkcd:light yellow')
     plt.xticks(visible=False)
     plt.yticks(visible=False)
     mark_inset(ax[0], axins, loc1=2, loc2=4, fc="none", ec="0.5")
+
+    ax[0].text(DT*N_TESTS, qMax, r'$q^{max}$', fontsize=40)
+    # ax_pos.text(T, Q_MIN[j], r'$q^{min}$', fontsize=30)
+    ax[0].set_xlim([0, DT*N_TESTS]);
+
+    ax[2].text(DT*N_TESTS, MAX_ACC, r'$\ddot{q}^{max}$', fontsize=40)
+    # ax_pos.text(T, Q_MIN[j], r'$q^{min}$', fontsize=30)
+    ax[2].set_xlim([0, DT*N_TESTS]);
+    # else:
+        # ax[0].text(DT*N_TESTS, qMax, r'$q^{max}$', fontsize=30)
+        # # ax_pos.text(T, Q_MIN[j], r'$q^{min}$', fontsize=30)
+        # ax[0].set_xlim([0, DT*N_TESTS]);
+
+    # ax[1].text(DT*N_TESTS, MAX_VEL, r'$\dot{q}^{max}$', fontsize=40)
+    #     # # # ax_pos.text(T, Q_MIN[j], r'$q^{min}$', fontsize=30)
+    # ax[1].set_xlim([0, DT*N_TESTS]);
+
+        # ax[2].text(DT*N_TESTS, MAX_ACC, r'$\ddot{q}^{max}$', fontsize=30)
+        # # ax_pos.text(T, Q_MIN[j], r'$q^{min}$', fontsize=30)
+        # ax[2].set_xlim([0, DT*N_TESTS]);
+
     
     plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,'Single'+'_'+str(TEST_MODE)+'_'+str(TEST_MAX_ACC)+'_'+str(TEST_RANDOM)+'_NZoom',PARAMS)
     

@@ -336,48 +336,48 @@ for j in range(1):
         ax[5].plot(time[:-1], ddq_lb[j,:], 'o--');
         ax[5].plot(time[:-1], ddq_ub[j,:], 'g--'); """
         ax[5].step(time[:-1], ddq[j,:], linewidth=LW); # ax[5].plot(time[:-1], ddq[j,:].A.squeeze(), linewidth=LW);
-        ax[5].step(time[:-1], ddq_lb[j,:], 'orange',linewidth=LW);
-        ax[5].step(time[:-1], ddq_ub[j,:], 'green',linewidth=LW);
+        #ax[5].step(time[:-1], ddq_lb[j,:], 'orange',linewidth=LW);
+        #ax[5].step(time[:-1], ddq_ub[j,:], 'green',linewidth=LW);
         #ax[5].step(time[:-1], (ddq_lb[j,:]),color='yellow', linewidth=LW);
-        ax[5].set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
-        ax[5].set_xlabel('Time [s]');
+        ax[5].set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]', fontsize = 30);
+        ax[5].set_xlabel('Time [s]', fontsize = 30);
         
         # plot velocity
         plut.movePlotSpines(ax[3], [0, 0]);
         ax[3].plot(time, dq[j,:], linewidth=LW); #.A.squeeze()
-        ax[3].plot([time[0], time[-1]], [DQ_MAX[j], DQ_MAX[j]], 'r--');
-        ax[3].plot([time[0], time[-1]], [-DQ_MAX[j], -DQ_MAX[j]], 'r--');
-        ax[3].set_ylabel(r'$\dot{q}$ [rad/s]');
-        ax[3].set_xlabel('Time [s]');
+        ax[3].plot([time[0], time[-1]], [DQ_MAX[j], DQ_MAX[j]], 'r--', linewidth=LW);
+        ax[3].plot([time[0], time[-1]], [-DQ_MAX[j], -DQ_MAX[j]], 'r--', linewidth=LW);
+        ax[3].set_ylabel(r'$\dot{q}$ [rad/s]', fontsize = 30);
+        ax[3].set_xlabel('Time [s]', fontsize = 30);
         
         # plot position
         plut.movePlotSpines(ax[1], [qMin, 0]);
         ax[1].plot(time, q[j,:], linewidth=LW); # .A.squeeze()
-        ax[1].plot([time[0], time[-1]], [Q_MAX[j], Q_MAX[j]], 'r--');
-        ax[1].plot([time[0], time[-1]], [Q_MIN[j], Q_MIN[j]], 'r--');
-        ax[1].set_ylabel(r'$q$ [rad]');
-        ax[1].set_xlabel('Time [s]');
+        ax[1].plot([time[0], time[-1]], [Q_MAX[j], Q_MAX[j]], 'r--', linewidth=LW);
+        ax[1].plot([time[0], time[-1]], [Q_MIN[j], Q_MIN[j]], 'r--', linewidth=LW);
+        ax[1].set_ylabel(r'$q$ [rad]', fontsize = 30);
+        ax[1].set_xlabel('Time [s]', fontsize = 30);
         
-        lege1=mpatches.Patch(color='orange',label='Acceleration lower bound j'+str(j));
-        lege2=mpatches.Patch(color='blue',label='Acceleration j'+str(j));
-        lege3=mpatches.Patch(color='green',label='Acceleration upper bound j'+str(j));
-        ax[5].legend(handles=[lege1,lege3,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),
-                    bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+        #lege1=mpatches.Patch(color='orange',label='Acceleration lower bound j'+str(j));
+        #lege2=mpatches.Patch(color='blue',label='Acceleration j'+str(j));
+        #lege3=mpatches.Patch(color='green',label='Acceleration upper bound j'+str(j));
+        #ax[5].legend(handles=[lege1,lege3,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),
+        #            bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
         
         ax = plt.subplot(1, 2, 1);
         # plot viability constraints
         q_plot = np.arange(qMid, qMax+Q_INTERVAL, Q_INTERVAL);
         dq_plot = np.sqrt(np.max([np.zeros(q_plot.shape),2*DDQ_MAX[j]*(qMax-q_plot)],0));
         ind = np.where(dq_plot<= DQ_MAX[j])[0];
-        ax.plot(q_plot[ind],dq_plot[ind], 'r--');
+        ax.plot(q_plot[ind],dq_plot[ind], 'r--', linewidth=LW);
         q_plot = np.arange(qMid, qMin-Q_INTERVAL, -Q_INTERVAL);
         dq_plot = -np.sqrt(np.max([np.zeros(q_plot.shape),2*DDQ_MAX[j]*(q_plot-qMin)],0));
         ind = np.where(dq_plot >= -DQ_MAX[j])[0];
-        ax.plot(q_plot[ind],dq_plot[ind], 'r--');
-        ax.plot([qMin, qMax], [+DQ_MAX[j], +DQ_MAX[j]], 'k--');
-        ax.plot([qMin, qMax], [-DQ_MAX[j], -DQ_MAX[j]], 'k--');
-        ax.plot([qMin, qMin], [-DQ_MAX[j], +DQ_MAX[j]], 'k--');
-        ax.plot([qMax, qMax], [-DQ_MAX[j], +DQ_MAX[j]], 'k--');
+        ax.plot(q_plot[ind],dq_plot[ind], 'r--', linewidth=LW);
+        ax.plot([qMin, qMax], [+DQ_MAX[j], +DQ_MAX[j]], 'k--', linewidth=LW);
+        ax.plot([qMin, qMax], [-DQ_MAX[j], -DQ_MAX[j]], 'k--', linewidth=LW);
+        ax.plot([qMin, qMin], [-DQ_MAX[j], +DQ_MAX[j]], 'k--', linewidth=LW);
+        ax.plot([qMax, qMax], [-DQ_MAX[j], +DQ_MAX[j]], 'k--', linewidth=LW);
         # plot state-space trajectory
         ax.plot(q[j,:], dq[j,:], 'b-', linewidth=LW); # .A.squeeze() .A.squeeze()
         ax.xaxis.set_ticks([qMin, q[j,0], qMax]);
@@ -386,46 +386,51 @@ for j in range(1):
         ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.2f'));
         ax.set_xlim([np.min(q[j,:]) -0.05*qHalf, np.max(q[j,:])+0.05*qHalf]);
         ax.set_ylim([np.min(dq[j,:])-0.05*DQ_MAX[j], np.max(dq[j,:])+0.05*DQ_MAX[j]]);
-        ax.set_title('Joint '+str(j),fontsize=25);
-        ax.set_xlabel(r'$q$ [rad]');
-        ax.set_ylabel(r'$\dot{q}$ [rad/s]');
+        ax.set_title('Joint '+str(j),fontsize = 30);
+        ax.set_xlabel(r'$q$ [rad]',fontsize = 30);
+        ax.set_ylabel(r'$\dot{q}$ [rad/s]',fontsize = 30);
         
         plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'_j'+str(j),1);
         # Plot without Joint space
         f, ax = plt.subplots(3, 1, sharex=True);
         ax = ax.reshape(3);
         plut.movePlotSpines(ax[2], [0, 0]);
+        plut.setAxisFontSize(ax[2],30)
         """ ax[5].plot(time[:-1], ddq[j,:], linewidth=LW); # ax[5].plot(time[:-1], ddq[j,:].A.squeeze(), linewidth=LW);
         ax[5].plot(time[:-1], ddq_lb[j,:], 'o--');
         ax[5].plot(time[:-1], ddq_ub[j,:], 'g--'); """
         ax[2].step(time[:-1], ddq[j,:], linewidth=LW); # ax[5].plot(time[:-1], ddq[j,:].A.squeeze(), linewidth=LW);
-        ax[2].step(time[:-1], ddq_lb[j,:], 'o--',linewidth=LW);
-        ax[2].step(time[:-1], ddq_ub[j,:], 'g--',linewidth=LW);
+        #ax[2].step(time[:-1], ddq_lb[j,:], 'o--',linewidth=LW);
+        #ax[2].step(time[:-1], ddq_ub[j,:], 'g--',linewidth=LW);
         #ax[5].step(time[:-1], (ddq_lb[j,:]),color='yellow', linewidth=LW);
-        ax[2].set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]');
-        ax[2].set_xlabel('Time [s]');
+        ax[2].set_ylabel(r'$\ddot{q}$ [rad/s${}^2$]',fontsize = 30);
+        ax[2].set_xlabel('Time [s]',fontsize = 30);
+        
         
         # plot velocity
+        plut.setAxisFontSize(ax[1],30)
         plut.movePlotSpines(ax[1], [0, 0]);
         ax[1].plot(time, dq[j,:], linewidth=LW); #.A.squeeze()
-        ax[1].plot([time[0], time[-1]], [DQ_MAX[j], DQ_MAX[j]], 'r--');
-        ax[1].plot([time[0], time[-1]], [-DQ_MAX[j], -DQ_MAX[j]], 'r--');
-        ax[1].set_ylabel(r'$\dot{q}$ [rad/s]');
-        ax[1].set_xlabel('Time [s]');
+        ax[1].plot([time[0], time[-1]], [DQ_MAX[j], DQ_MAX[j]], 'r--',linewidth = LW);
+        ax[1].plot([time[0], time[-1]], [-DQ_MAX[j], -DQ_MAX[j]], 'r--',linewidth = LW);
+        ax[1].set_ylabel(r'$\dot{q}$ [rad/s]',fontsize = 30);
+        ax[1].set_xlabel('Time [s]',fontsize = 30);
         
         # plot position
         plut.movePlotSpines(ax[2], [qMin, 0]);
+        plut.setAxisFontSize(ax[0],30)
         ax[0].plot(time, q[j,:], linewidth=LW); # .A.squeeze()
-        ax[0].plot([time[0], time[-1]], [Q_MAX[j], Q_MAX[j]], 'r--');
-        ax[0].plot([time[0], time[-1]], [Q_MIN[j], Q_MIN[j]], 'r--');
-        ax[0].set_ylabel(r'$q$ [rad]');
-        ax[0].set_xlabel('Time [s]');
+        ax[0].plot([time[0], time[-1]], [Q_MAX[j], Q_MAX[j]], 'r--',linewidth = LW);
+        ax[0].plot([time[0], time[-1]], [Q_MIN[j], Q_MIN[j]], 'r--',linewidth = LW);
+        ax[0].set_ylabel(r'$q$ [rad]',fontsize = 30);
+        ax[0].set_xlabel('Time [s]',fontsize = 30);
         
-        lege1=mpatches.Patch(color='orange',label='Acceleration lower bound j'+str(j));
-        lege2=mpatches.Patch(color='blue',label='Acceleration j'+str(j));
-        lege3=mpatches.Patch(color='green',label='Acceleration upper bound j'+str(j));
-        ax[2].legend(handles=[lege1,lege3,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),
-                    bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
+        
+        #lege1=mpatches.Patch(color='orange',label='Acceleration lower bound j'+str(j));
+        #lege2=mpatches.Patch(color='blue',label='Acceleration j'+str(j));
+        #lege3=mpatches.Patch(color='green',label='Acceleration upper bound j'+str(j));
+        #ax[2].legend(handles=[lege1,lege3,lege2], loc='upper center',bbox_to_anchor=(0.5, 1.0),
+        #            bbox_transform=plt.gcf().transFigure,ncol=5,fontsize=30 );
         
         plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'pva_j'+str(j),1);
             
@@ -446,8 +451,8 @@ for j in range(1):
             # plot velocity
             (f, ax_vel) = create_empty_figure(1);
             ax_vel.plot(time, dq[j,:], linewidth=LW); #.A.squeeze()
-            ax_vel.plot([time[0], time[-1]], [DQ_MAX[j], DQ_MAX[j]], 'r--');
-            ax_vel.plot([time[0], time[-1]], [-DQ_MAX[j], -DQ_MAX[j]], 'r--');
+            ax_vel.plot([time[0], time[-1]], [DQ_MAX[j], DQ_MAX[j]], 'r--',linewidth = LW);
+            ax_vel.plot([time[0], time[-1]], [-DQ_MAX[j], -DQ_MAX[j]], 'r--',linewidth = LW);
             ax_vel.set_ylabel(r'$\dot{q}$ [rad/s]');
             ax_vel.set_xlabel('Time [s]');
             plut.saveFigureandParameterinDateFoFlder(GARBAGE_FOLDER,TEST_NAME+'vel_j'+str(j),1);
@@ -455,8 +460,8 @@ for j in range(1):
             # plot position
             (f, ax_pos) = create_empty_figure(1);
             ax_pos.plot(time, q[j,:], linewidth=LW); # .A.squeeze()
-            ax_pos.plot([time[0], time[-1]], [Q_MAX[j], Q_MAX[j]], 'r--');
-            ax_pos.plot([time[0], time[-1]], [Q_MIN[j], Q_MIN[j]], 'r--');
+            ax_pos.plot([time[0], time[-1]], [Q_MAX[j], Q_MAX[j]], 'r--',linewidth = LW);
+            ax_pos.plot([time[0], time[-1]], [Q_MIN[j], Q_MIN[j]], 'r--',linewidth = LW);
             ax_pos.set_ylabel(r'$q$ [rad]');
             ax_pos.set_xlabel('Time [s]');
             plut.saveFigureandParameterinDateFolder(GARBAGE_FOLDER,TEST_NAME+'acc_j'+str(j),1);
